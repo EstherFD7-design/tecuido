@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TE CUIDO</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .bienvenida-bg { position:absolute;inset:0;background-image:url('imagenes/inicio.jpg');background-size:cover;background-position:center;filter:brightness(.38); }
+    .bienvenida-logo img { width:72px;height:72px;object-fit:contain; }
+    .header-logo img     { width:32px;height:32px;object-fit:contain; }
+    .auth-brand-logo img { width:38px;height:38px;object-fit:contain; }
+    .header-avatar img,.perfil-foto img,.confirmacion-foto img { width:100%;height:100%;object-fit:cover;border-radius:50%; }
+    .recomendacion-item  { padding:0;overflow:hidden; }
+    .rec-img { width:100%;height:120px;object-fit:cover;display:block; }
+    .rec-texto { padding:12px 14px 14px; }
+    .rec-texto h4 { font-size:.85rem;font-weight:600;color:var(--texto);margin-bottom:4px; }
+    .rec-texto p  { font-size:.78rem;color:var(--texto-suave); }
+    .nav-icon svg,.icono-svg svg { width:18px;height:18px; }
+    .icono-svg { display:flex;align-items:center;justify-content:center; }
+    .modulo-icono svg { width:24px;height:24px; }
+    .modulo-flecha svg { width:18px;height:18px; }
+    .alarma-icono svg  { width:22px;height:22px; }
+    #notif-badge { position:absolute;top:-4px;right:-4px;background:var(--rojo-suave);color:#fff;border-radius:50%;width:18px;height:18px;font-size:.65rem;display:none;align-items:center;justify-content:center;font-weight:700; }
+    .btn-sm { padding:4px 10px;font-size:.75rem;border-radius:6px; }
+    .campo-info { font-size:.75rem;color:var(--verde);margin-top:4px; }
+
+    /* ── Selector tipo del registro ── */
+    .reg-tipo-selector { display:flex;gap:12px;margin-top:8px; }
+    .reg-tipo-opcion { flex:1;cursor:pointer; }
+    .reg-tipo-opcion input[type="radio"] { display:none; }
+    .reg-tipo-card {
+      display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;
+      border:2px solid var(--borde);border-radius:14px;padding:16px 10px;
+      background:var(--fondo-card);transition:all .2s ease;
+    }
+    .reg-tipo-card strong { font-size:.84rem;color:var(--texto); }
+    .reg-tipo-card span   { font-size:.72rem;color:var(--texto-suave); }
+    .reg-tipo-opcion input:checked + .reg-tipo-card {
+      border-color:var(--verde);background:rgba(45,125,90,.07);
+      box-shadow:0 0 0 3px rgba(45,125,90,.13);
+    }
+    .reg-tipo-card:hover { border-color:var(--verde-claro);transform:translateY(-2px); }
+
+    /* ── Selector del sexo con el avatar ── */
+    .reg-sexo-row { display:flex;align-items:center;gap:16px;margin-bottom:14px; }
+    .reg-avatar-circle {
+      width:68px;height:68px;border-radius:50%;overflow:hidden;flex-shrink:0;
+      border:3px solid var(--verde-claro);background:var(--fondo);
+      display:flex;align-items:center;justify-content:center;
+    }
+    .reg-avatar-circle img { width:42px;height:42px;object-fit:contain;transition:all .25s; }
+    .reg-avatar-circle.tiene-foto img { width:100%;height:100%;object-fit:cover; }
+    .reg-sexo-opciones { flex:1; }
+    .reg-sexo-btn { cursor:pointer; }
+    .reg-sexo-btn input[type="radio"] { display:none; }
+    .reg-sexo-btn span {
+      display:inline-block;padding:7px 20px;border-radius:20px;
+      border:2px solid var(--borde);font-size:.82rem;font-weight:500;
+      color:var(--texto-suave);transition:all .2s;
+    }
+    .reg-sexo-btn input:checked + span {
+      border-color:var(--verde);background:var(--verde);color:#fff;
+    }
+    .reg-sexo-btn span:hover { border-color:var(--verde); }
+
+    /* ── Cajas de vinculación ── */
+    .reg-vinculo-box {
+      border:1.5px dashed var(--borde);border-radius:12px;
+      padding:16px;background:var(--fondo);
+    }
+    .reg-vinculo-box--requerido {
+      border-color:var(--verde);background:rgba(45,125,90,.04);
+    }
+    .reg-badge-opt {
+      font-size:.68rem;background:var(--acento);color:#fff;
+      padding:2px 9px;border-radius:10px;font-weight:600;
+    }
+    .reg-badge-req {
+      font-size:.68rem;background:var(--rojo-suave);color:#fff;
+      padding:2px 9px;border-radius:10px;font-weight:600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════ BIENVENIDA A TE_CUIDO ══════════════════════════ -->
+  <section id="pagina-bienvenida">
+    <div class="bienvenida-bg"></div>
+    <div class="bienvenida-contenido">
+      <div class="bienvenida-logo"><img src="imagenes/Logotecuido.sinN.png" alt="Logo Te Cuido" /></div>
+      <h1>Te cuido</h1>
+      <p>Cuidado personalizado para ti y tu familia. Gestiona tu salud en un solo lugar.</p>
+      <button id="btn-bienvenida" class="btn-primario">Bienvenid@ &rsaquo;</button>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ LOGIN ══════════════════════════ -->
+  <section id="pagina-login">
+    <div class="auth-layout">
+      <div class="auth-panel-izq">
+        <video class="auth-panel-video" autoplay muted loop playsinline>
+          <source src="imagenes/citamedica.mp4" type="video/mp4" />
+        </video>
+        <div class="auth-brand">
+          <div class="auth-brand-logo"><img src="imagenes/Logotecuido.sinN.png" alt="Logo" /></div>
+          <h1>Te cuido</h1>
+        </div>
+        <div class="auth-ilustracion">
+          <h2>Tu salud, nuestra prioridad</h2>
+          <p>Controla tus citas, medicamentos y bienestar en un solo lugar.</p>
+        </div>
+        <div class="auth-features">
+          <div class="auth-feature-item"><span class="icono-svg"><img src="iconos/calendario.png" width="18" height="18" alt="calendario"></span> Gestión de citas médicas</div>
+          <div class="auth-feature-item"><span class="icono-svg"><img src="iconos/pastilla.png" width="18" height="18" alt="medicamento"></span> Recordatorios de medicamentos</div>
+          <div class="auth-feature-item"><span class="icono-svg"><img src="iconos/chart.png" width="18" height="18" alt="seguimiento"></span> Seguimiento de signos vitales</div>
+          <div class="auth-feature-item"><span class="icono-svg"><img src="iconos/mensaje.png" width="18" height="18" alt="mensajes"></span> Mensajería con familiares</div>
+        </div>
+      </div>
+      <div class="auth-panel-der">
+        <div class="auth-form-contenedor">
+          <div class="auth-form-header"><h2>Iniciar sesión</h2><p>Ingresa tus credenciales para acceder</p></div>
+          <form id="formulario-login" novalidate>
+            <div class="campo"><label for="correo-login">Correo electrónico</label><input type="email" id="correo-login" placeholder="correo@dominio.com" autocomplete="email" required /></div>
+            <div class="campo"><label for="contrasena-login">Contraseña</label><input type="password" id="contrasena-login" placeholder="Tu contraseña" autocomplete="current-password" required /></div>
+            <div class="auth-olvidé"><a href="#" class="enlace-auth">¿Olvidaste tu contraseña?</a></div>
+            <button type="submit" class="btn-verde btn-full">Ingresar</button>
+          </form>
+          <a href="#pagina-registro"><button type="button" class="btn-outline btn-full">Registrarse</button></a>
+          <p class="auth-términos">Al continuar, aceptas nuestros <a href="#" class="enlace-auth">Términos de servicio</a> y <a href="#" class="enlace-auth">Política de privacidad</a>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ REGISTRO ══════════════════════════ -->
+  <section id="pagina-registro">
+    <div class="auth-layout">
+      <div class="auth-panel-izq">
+        <div class="auth-brand">
+          <div class="auth-brand-logo"><img src="imagenes/Logotecuido.sinN.png" alt="Logo" /></div>
+          <h1>Te cuido</h1>
+        </div>
+        <div class="auth-ilustracion">
+          <h2>Crea tu cuenta</h2>
+          <p>Regístrate como paciente o familiar y comienza a gestionar tu salud hoy.</p>
+        </div>
+        <div class="auth-features">
+          <div class="auth-feature-item"><span class="icono-svg"><img src="iconos/usuario.png" width="18" height="18" alt="perfil"></span> Datos seguros y protegidos</div>
+          <div class="auth-feature-item"><span class="icono-svg"><img src="iconos/corazon.png" width="18" height="18" alt="salud"></span> Vinculación con tu EPS</div>
+          <div class="auth-feature-item"><span class="icono-svg"><img src="iconos/campana.png" width="18" height="18" alt="alarmas"></span> Roles para paciente y cuidador</div>
+        </div>
+      </div>
+      <div class="auth-panel-der">
+        <div class="auth-form-contenedor">
+          <div class="auth-form-header"><h2>Registro</h2><p>Ingresa tus datos para crear tu cuenta</p></div>
+          <form id="formulario-registro" novalidate>
+
+            <!-- ══ PASO 1: TIPO DE USUARIO ══ -->
+            <div class="formulario-seccion">
+              <div class="formulario-seccion-titulo">¿Cómo vas a usar Te Cuido?</div>
+              <div class="reg-tipo-selector">
+                <label class="reg-tipo-opcion" id="tipo-card-paciente">
+                  <input type="radio" name="tipo-registro" id="tipo-paciente" value="paciente" />
+                  <div class="reg-tipo-card">
+                    <img src="iconos/corazon.png" width="26" height="26" alt="paciente" />
+                    <strong>Soy paciente</strong>
+                    <span>Quiero gestionar mi salud</span>
+                  </div>
+                </label>
+                <label class="reg-tipo-opcion" id="tipo-card-familiar">
+                  <input type="radio" name="tipo-registro" id="tipo-familiar" value="familiar" />
+                  <div class="reg-tipo-card">
+                    <img src="iconos/usuario.png" width="26" height="26" alt="cuidador" />
+                    <strong>Soy familiar / cuidador</strong>
+                    <span>Cuido a un paciente</span>
+                  </div>
+                </label>
+              </div>
+              <!-- campo oculto sincronizado con las tarjetas -->
+              <input type="hidden" id="rol" value="" />
+            </div>
+
+            <!-- ══ INFORMACIÓN PERSONAL ══ -->
+            <div class="formulario-seccion">
+              <div class="formulario-seccion-titulo">Información personal</div>
+
+              <!-- Avatar + selector de sexo -->
+              <div class="reg-sexo-row">
+                <div class="reg-avatar-circle" id="reg-avatar-circle">
+                  <img src="iconos/usuario.png" alt="Avatar" id="reg-avatar-img" />
+                </div>
+                <div class="reg-sexo-opciones">
+                  <span style="font-size:.8rem;font-weight:600;color:var(--texto);margin-bottom:6px;display:block;">Sexo <span style="color:var(--rojo-suave);">*</span></span>
+                  <div style="display:flex;gap:10px;">
+                    <label class="reg-sexo-btn" id="sexo-btn-hombre">
+                      <input type="radio" name="sexo" id="sexo-hombre" value="M" />
+                      <span>♂ Hombre</span>
+                    </label>
+                    <label class="reg-sexo-btn" id="sexo-btn-mujer">
+                      <input type="radio" name="sexo" id="sexo-mujer" value="F" />
+                      <span>♀ Mujer</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="campo-fila">
+                <div class="campo"><label for="nombres">Nombres</label><input type="text" id="nombres" placeholder="Primer y segundo nombre" required /></div>
+                <div class="campo"><label for="apellidos">Apellidos</label><input type="text" id="apellidos" placeholder="Primer y segundo apellido" required /></div>
+              </div>
+              <div class="campo-fila">
+                <div class="campo"><label for="cedula">Cédula</label><input type="text" id="cedula" placeholder="Número de cédula" required /></div>
+                <div class="campo"><label for="telefono">Teléfono</label><input type="tel" id="telefono" placeholder="Número de teléfono" /></div>
+              </div>
+              <div class="campo"><label for="fecha-nacimiento">Fecha de nacimiento</label><input type="date" id="fecha-nacimiento" /></div>
+            </div>
+
+            <!-- ══ CREDENCIALES ══ -->
+            <div class="formulario-seccion">
+              <div class="formulario-seccion-titulo">Credenciales de acceso</div>
+              <div class="campo"><label for="correo-registro">Correo electrónico</label><input type="email" id="correo-registro" placeholder="correo@dominio.com" autocomplete="email" required /></div>
+              <div class="campo">
+                <label for="contrasena-registro">Contraseña</label>
+                <input type="password" id="contrasena-registro" placeholder="Mínimo 8 caracteres" autocomplete="new-password" required />
+                <span class="campo-info">Mínimo 8 caracteres</span>
+              </div>
+            </div>
+
+            <!-- ══ SISTEMA DE SALUD ══ -->
+            <div class="formulario-seccion">
+              <div class="formulario-seccion-titulo">Sistema de salud</div>
+              <div class="campo">
+                <label for="eps">EPS</label>
+                <select id="eps" required>
+                  <option value="">Selecciona tu EPS...</option>
+                  <option value="1">EPS Sura</option>
+                  <option value="2">Sanitas</option>
+                  <option value="3">Nueva EPS</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- ══ ANTECEDENTES MÉDICOS ══ -->
+            <div class="formulario-seccion">
+              <div class="formulario-seccion-titulo">Antecedentes médicos</div>
+              <p style="font-size:.8rem;color:var(--texto-suave);margin-bottom:12px;">Selecciona las enfermedades o condiciones que padeces (puedes elegir varias).</p>
+              <div class="enfermedades-grid">
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="1" /><span>Diabetes tipo 1</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="2" /><span>Diabetes tipo 2</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="3" /><span>Hipertensión arterial</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="4" /><span>Enfermedad coronaria</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="5" /><span>Insuficiencia cardíaca</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="6" /><span>Asma bronquial</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="7" /><span>EPOC</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="8" /><span>Hipotiroidismo</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="9" /><span>Hipertiroidismo</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="10" /><span>Artritis reumatoide</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="11" /><span>Osteoporosis</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="12" /><span>Insuficiencia renal crónica</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="13" /><span>Epilepsia</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="14" /><span>Alzheimer</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="15" /><span>Parkinson</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="16" /><span>Depresión</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="17" /><span>Ansiedad generalizada</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="18" /><span>Gastritis crónica</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="19" /><span>Colitis ulcerosa</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="20" /><span>Obesidad</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="21" /><span>Lupus eritematoso sistémico</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="22" /><span>VIH/SIDA</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="23" /><span>Cáncer (especificar)</span></label>
+                <label class="enf-chip"><input type="checkbox" name="enfermedades" value="24" /><span>Otra</span></label>
+              </div>
+              <div class="campo" style="margin-top:12px;">
+                <label for="enf-otras">Otra condición no listada</label>
+                <input type="text" id="enf-otras" placeholder="Ej: Fibromialgia, Celiaquía…" />
+              </div>
+            </div>
+
+            <!-- ══ VINCULACIÓN: solo para PACIENTE (opcional) ══ -->
+            <div class="formulario-seccion reg-vinculo-box" id="seccion-vincular-cuidador" style="display:none;">
+              <div class="formulario-seccion-titulo" style="display:flex;align-items:center;gap:8px;">
+                <img src="iconos/usuario.png" width="15" height="15" alt=""> Vincular con tu cuidador
+                <span class="reg-badge-opt">Opcional</span>
+              </div>
+              <p style="font-size:.81rem;color:var(--texto-suave);margin-bottom:12px;">Si tu familiar o cuidador ya está registrado en Te Cuido, ingresa su código para conectar las cuentas. También puedes hacerlo después desde tu perfil.</p>
+              <div class="campo">
+                <label for="codigo-cuidador">Código del cuidador</label>
+                <input type="text" id="codigo-cuidador" placeholder="Ej: TC-00123" />
+                <span class="campo-info">Encuéntralo en el perfil de tu cuidador.</span>
+              </div>
+            </div>
+
+            <!-- ══ VINCULACIÓN: solo para FAMILIAR/CUIDADOR (obligatoria) ══ -->
+            <div class="formulario-seccion reg-vinculo-box reg-vinculo-box--requerido" id="seccion-vincular-paciente" style="display:none;">
+              <div class="formulario-seccion-titulo" style="display:flex;align-items:center;gap:8px;">
+                <img src="iconos/corazon.png" width="15" height="15" alt=""> Vincular con tu paciente
+                <span class="reg-badge-req">Requerido</span>
+              </div>
+              <p style="font-size:.81rem;color:var(--texto-suave);margin-bottom:12px;">Para finalizar tu registro como cuidador <strong>debes</strong> ingresar el código del paciente al que vas a acompañar. Sin este dato no podrás completar el registro.</p>
+              <div class="campo">
+                <label for="codigo-paciente">Código del paciente <span style="color:var(--rojo-suave);">*</span></label>
+                <input type="text" id="codigo-paciente" placeholder="Ej: TC-00045" />
+                <span class="campo-info" id="info-codigo-paciente">Pídele a tu paciente que lo comparta desde su perfil en Te Cuido.</span>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-verde btn-full">Registrarse</button>
+            <a href="#pagina-login"><button type="button" class="btn-ghost btn-full">← Volver al inicio de sesión</button></a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ CONFIRMACIÓN ══════════════════════════ -->
+  <section id="pagina-confirmacion">
+    <div class="confirmacion-card">
+      <div class="confirmacion-icono" style="background:var(--verde);color:#fff;"><img src="iconos/check.png" width="36" height="36" alt="confirmado"></div>
+      <h2>¡Registro exitoso!</h2>
+      <p>Tus datos han sido almacenados correctamente. Ya puedes acceder a tu cuenta.</p>
+      <a href="#pagina-datos-validados"><button class="btn-verde btn-full">Continuar</button></a>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ DATOS VALIDADOS ══════════════════════════ -->
+  <section id="pagina-datos-validados">
+    <div class="confirmacion-card">
+      <div class="confirmacion-foto"><img id="avatar-datos-validados" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%232d7d5a'/%3E%3Ccircle cx='20' cy='15' r='7' fill='%23fff' opacity='.9'/%3E%3Cellipse cx='20' cy='34' rx='12' ry='9' fill='%23fff' opacity='.9'/%3E%3C/svg%3E" alt="Foto de perfil" /></div>
+      <h2 id="nombre-validado">¡Bienvenid@!</h2>
+      <p>Tu sesión está activa. Estás list@ para comenzar a cuidarte.</p>
+      <a href="#pagina-dashboard"><button class="btn-verde btn-full">Ir al inicio →</button></a>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ DASHBOARD ══════════════════════════ -->
+  <section id="pagina-dashboard">
+    <header class="app-header">
+      <div class="header-marca">
+        <div class="header-logo"><img src="imagenes/Logotecuido.sinN.png" alt="Logo" /></div>
+        <span>Te cuido</span>
+      </div>
+      <div class="header-busqueda" style="position:relative;">
+        <img src="iconos/buscar.png" width="16" height="16" alt="buscar" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);opacity:0.5;pointer-events:none">
+        <input type="search" id="buscador" placeholder="Buscar..." style="padding-left:38px;" />
+      </div>
+      <div class="header-acciones">
+        <!-- Badge de notificaciones -->
+        <div style="position:relative;">
+          <a href="#pagina-alarmas" title="Notificaciones">
+            <img src="iconos/campana.png" width="22" height="22" alt="notificaciones">
+          </a>
+          <span id="notif-badge">0</span>
+        </div>
+        <a href="#pagina-perfil"><div class="header-avatar"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%232d7d5a'/%3E%3Ccircle cx='20' cy='15' r='7' fill='%23fff' opacity='.9'/%3E%3Cellipse cx='20' cy='34' rx='12' ry='9' fill='%23fff' opacity='.9'/%3E%3C/svg%3E" alt="Avatar" class="avatar-usuario" class="avatar-usuario" /></div></a>
+        <button class="btn-danger" data-accion="cerrar-sesion" style="display:flex;align-items:center;gap:6px;"><img src="iconos/salir.png" width="16" height="16" alt="salir"> Salir</button>
+      </div>
+    </header>
+    <div class="app-cuerpo">
+      <nav class="sidebar">
+        <div class="sidebar-nav"><ul>
+          <li><a href="#pagina-dashboard" class="activo"><span class="nav-icon icono-svg"><img src="iconos/home.png" width="18" height="18" alt="inicio"></span> Inicio</a></li>
+          <li><a href="#pagina-seguimiento"><span class="nav-icon icono-svg"><img src="iconos/chart.png" width="18" height="18" alt="seguimiento"></span> Seguimiento</a></li>
+          <li><a href="#pagina-mensajes"><span class="nav-icon icono-svg"><img src="iconos/mensaje.png" width="18" height="18" alt="mensajes"></span> Mensajes</a></li>
+          <li><a href="#pagina-alarmas"><span class="nav-icon icono-svg"><img src="iconos/campana.png" width="18" height="18" alt="alarmas"></span> Citas</a></li>
+          <li><a href="#pagina-perfil"><span class="nav-icon icono-svg"><img src="iconos/usuario.png" width="18" height="18" alt="perfil"></span> Perfil</a></li>
+        </ul></div>
+        <div class="sidebar-separador"></div>
+        <div class="sidebar-pie">
+          <button class="btn-ghost" style="width:100%;text-align:left;display:flex;gap:10px;align-items:center;" data-accion="cerrar-sesion">
+            <img src="iconos/salir.png" width="16" height="16" alt="salir"> Cerrar sesión
+          </button>
+        </div>
+      </nav>
+      <main class="app-main">
+        <div class="dashboard-saludo">
+          <h2>Hola 👋</h2>
+          <p style="color:var(--texto-suave);">Aquí está tu resumen de hoy</p>
+        </div>
+
+        <div class="dashboard-grid" style="margin-bottom:20px;">
+          <div class="card objetivo-card">
+            <div class="card-header">
+              <div><div class="card-titulo">Objetivo de hoy</div><h3>Tu progreso diario</h3></div>
+              <a href="#pagina-seguimiento" class="ver-todo">Ver detalle</a>
+            </div>
+            <p class="objetivo-mensaje">¡Sigue con tus hábitos saludables!</p>
+            <div class="barra-progreso-contenedor"><div class="barra-progreso" style="width:0%;"></div></div>
+            <p class="progreso-texto">Metas del día</p>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Acciones rápidas</h3></div>
+            <div class="seguimiento-items">
+              <div class="seguimiento-item" style="cursor:pointer;" onclick="irA('pagina-registrar-signo')">
+                <div class="seguimiento-icono icono-svg"><img src="iconos/corazon.png" width="16" height="16" alt="signo"></div>
+                <div class="seguimiento-info"><strong>Registrar signo vital</strong><p>Glucosa, presión, peso...</p></div>
+              </div>
+              <div class="seguimiento-item" style="cursor:pointer;" onclick="irA('pagina-agendar-cita')">
+                <div class="seguimiento-icono icono-svg"><img src="iconos/calendario.png" width="16" height="16" alt="cita"></div>
+                <div class="seguimiento-info"><strong>Agendar cita</strong><p>Nueva cita médica</p></div>
+              </div>
+              <div class="seguimiento-item" style="cursor:pointer;" onclick="irA('pagina-mensajes')">
+                <div class="seguimiento-icono icono-svg"><img src="iconos/mensaje.png" width="16" height="16" alt="mensaje"></div>
+                <div class="seguimiento-info"><strong>Enviar mensaje</strong><p>Habla con tus familiares</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header"><h3>Recomendaciones</h3><a href="#" class="ver-todo">Ver todo</a></div>
+          <div class="recomendaciones-grid">
+            <div class="recomendacion-item"><img class="rec-img" src="imagenes/alimentacion.jpg" alt="Nutrición" /><div class="rec-texto"><h4>Recomendación nutricional</h4><p>Nutrición saludable para tu plan de salud.</p></div></div>
+            <div class="recomendacion-item"><img class="rec-img" src="imagenes/racion.jpg" alt="Ración sugerida" /><div class="rec-texto"><h4>Ración sugerida</h4><p>Alimentación balanceada según tu diagnóstico.</p></div></div>
+            <div class="recomendacion-item"><img class="rec-img" src="imagenes/beneficios para la salud.jpg" alt="Beneficios" /><div class="rec-texto"><h4>Beneficios de salud</h4><p>Actividades que mejoran tu bienestar general.</p></div></div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-header"><h3>Próximas citas</h3><a href="#pagina-alarmas" class="ver-todo">Ver todo</a></div>
+            <div class="citas-lista">
+              <p style="color:var(--texto-suave);padding:12px 0;font-size:.85rem;">Cargando citas...</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Medicamentos activos</h3><a href="#pagina-alarmas" class="ver-todo">Ver</a></div>
+            <div class="medicamentos-dashboard">
+              <p style="color:var(--texto-suave);padding:12px 0;font-size:.85rem;">Cargando medicamentos...</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ SEGUIMIENTO (VUE.JS) ══════════════════════════ -->
+
+  <section id="pagina-seguimiento">
+    <header class="app-header">
+      <div class="header-marca">
+        <div class="header-logo"><img src="imagenes/Logotecuido.sinN.png" alt="Logo" /></div>
+        <span>Te cuido</span>
+      </div>
+      <div class="header-acciones">
+        <a href="#pagina-perfil"><div class="header-avatar"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%232d7d5a'/%3E%3Ccircle cx='20' cy='15' r='7' fill='%23fff' opacity='.9'/%3E%3Cellipse cx='20' cy='34' rx='12' ry='9' fill='%23fff' opacity='.9'/%3E%3C/svg%3E" alt="Avatar" class="avatar-usuario" class="avatar-usuario" /></div></a>
+        <button class="btn-danger" data-accion="cerrar-sesion" style="display:flex;align-items:center;gap:6px;">
+          <img src="iconos/salir.png" width="16" height="16" alt="salir"> Salir
+        </button>
+      </div>
+    </header>
+    <div class="app-cuerpo">
+      <nav class="sidebar"><div class="sidebar-nav"><ul>
+        <li><a href="#pagina-dashboard"><span class="nav-icon icono-svg"><img src="iconos/home.png" width="18" height="18" alt="inicio"></span> Inicio</a></li>
+        <li><a href="#pagina-seguimiento" class="activo"><span class="nav-icon icono-svg"><img src="iconos/chart.png" width="18" height="18" alt="seguimiento"></span> Seguimiento</a></li>
+        <li><a href="#pagina-mensajes"><span class="nav-icon icono-svg"><img src="iconos/mensaje.png" width="18" height="18" alt="mensajes"></span> Mensajes</a></li>
+        <li><a href="#pagina-alarmas"><span class="nav-icon icono-svg"><img src="iconos/campana.png" width="18" height="18" alt="alarmas"></span> Citas</a></li>
+        <li><a href="#pagina-perfil"><span class="nav-icon icono-svg"><img src="iconos/usuario.png" width="18" height="18" alt="perfil"></span> Perfil</a></li>
+      </ul></div></nav>
+
+      <!-- ══ Punto de montaje de la aplicación VUE ══ -->
+      <main class="app-main" id="app-signos">
+        <!-- Contenido generado por Vue (signos-vitales_vue.js) -->
+      </main>
+    </div>
+  </section>
+
+  <!-- pagina-registrar-signo ya no es necesaria: el formulario vive dentro de Vue -->
+  <section id="pagina-registrar-signo" style="display:none;"></section>
+
+
+
+  <!-- ══════════════════════════ MENSAJES ══════════════════════════ -->
+  <section id="pagina-mensajes">
+    <header class="app-header">
+      <div class="header-marca"><div class="header-logo"><img src="imagenes/Logotecuido.sinN.png" alt="Logo" /></div><span>Te cuido</span></div>
+      <div class="header-acciones">
+        <a href="#pagina-perfil"><div class="header-avatar"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%232d7d5a'/%3E%3Ccircle cx='20' cy='15' r='7' fill='%23fff' opacity='.9'/%3E%3Cellipse cx='20' cy='34' rx='12' ry='9' fill='%23fff' opacity='.9'/%3E%3C/svg%3E" alt="Avatar" class="avatar-usuario" class="avatar-usuario" /></div></a>
+        <button class="btn-danger" data-accion="cerrar-sesion" style="display:flex;align-items:center;gap:6px;"><img src="iconos/salir.png" width="16" height="16" alt="salir"> Salir</button>
+      </div>
+    </header>
+    <div class="app-cuerpo">
+      <nav class="sidebar"><div class="sidebar-nav"><ul>
+        <li><a href="#pagina-dashboard"><span class="nav-icon icono-svg"><img src="iconos/home.png" width="18" height="18" alt="inicio"></span> Inicio</a></li>
+        <li><a href="#pagina-seguimiento"><span class="nav-icon icono-svg"><img src="iconos/chart.png" width="18" height="18" alt="seguimiento"></span> Seguimiento</a></li>
+        <li><a href="#pagina-mensajes" class="activo"><span class="nav-icon icono-svg"><img src="iconos/mensaje.png" width="18" height="18" alt="mensajes"></span> Mensajes</a></li>
+        <li><a href="#pagina-alarmas"><span class="nav-icon icono-svg"><img src="iconos/campana.png" width="18" height="18" alt="alarmas"></span> Citas</a></li>
+        <li><a href="#pagina-perfil"><span class="nav-icon icono-svg"><img src="iconos/usuario.png" width="18" height="18" alt="perfil"></span> Perfil</a></li>
+      </ul></div></nav>
+      <main class="app-main">
+        <div class="mensajes-layout">
+          <div class="card mensajes-lista-card">
+            <div class="card-header"><h3>Mensajes</h3></div>
+            <div class="mensajes-lista">
+              
+              <div class="conversacion-item activa" data-id-familiar="1" data-nombre="Juan (Hijo)">
+                <div class="conv-avatar"><img src="imagenes/juan.jpg" alt="Juan" /></div>
+                <div class="conv-info"><div class="conv-nombre">Juan (Hijo)</div><div class="conv-preview"> Recuerda tus medicamentos...</div></div>
+              </div>
+              <div class="conversacion-item" data-id-familiar="2" data-nombre="Vanesa (Hija)">
+                <div class="conv-avatar"><img src="imagenes/vanesa.jpg" alt="Vanesa" /></div>
+                <div class="conv-info"><div class="conv-nombre">Vanesa (Hija)</div><div class="conv-preview">¡Ánimo! ¡Se que puedes hacerlo!</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mensajes-chat" style="display:flex;flex-direction:column;">
+            <div class="chat-header">
+              <div class="conv-avatar"><img src="imagenes/juan.jpg" alt="Juan" /></div>
+              <div><div class="chat-nombre">Juan (Hijo)</div><div class="chat-estado">● Familiar vinculado</div></div>
+            </div>
+            <div class="chat-mensajes">
+              <div class="mensaje-burbuja mensaje-recibido">Recuerda tus medicamentos esta tarde. Te quiero </div>
+              <div class="mensaje-burbuja mensaje-enviado">Gracias hij@, ya los tomé 💚</div>
+            </div>
+            <div class="chat-input-area">
+              <input class="chat-input" type="text" placeholder="Escribe un mensaje..." />
+              <button class="btn-enviar"><img src="iconos/enviar.png" width="16" height="16" alt="enviar"></button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ ALARMAS / CITAS ══════════════════════════ -->
+  <section id="pagina-alarmas">
+    <header class="app-header">
+      <div class="header-marca"><div class="header-logo"><img src="imagenes/Logotecuido.sinN.png" alt="Logo" /></div><span>Te cuido</span></div>
+      <div class="header-acciones">
+        <a href="#pagina-perfil"><div class="header-avatar"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%232d7d5a'/%3E%3Ccircle cx='20' cy='15' r='7' fill='%23fff' opacity='.9'/%3E%3Cellipse cx='20' cy='34' rx='12' ry='9' fill='%23fff' opacity='.9'/%3E%3C/svg%3E" alt="Avatar" class="avatar-usuario" class="avatar-usuario" /></div></a>
+        <button class="btn-danger" data-accion="cerrar-sesion" style="display:flex;align-items:center;gap:6px;"><img src="iconos/salir.png" width="16" height="16" alt="salir"> Salir</button>
+      </div>
+    </header>
+    <div class="app-cuerpo">
+      <nav class="sidebar"><div class="sidebar-nav"><ul>
+        <li><a href="#pagina-dashboard"><span class="nav-icon icono-svg"><img src="iconos/home.png" width="18" height="18" alt="inicio"></span> Inicio</a></li>
+        <li><a href="#pagina-seguimiento"><span class="nav-icon icono-svg"><img src="iconos/chart.png" width="18" height="18" alt="seguimiento"></span> Seguimiento</a></li>
+        <li><a href="#pagina-mensajes"><span class="nav-icon icono-svg"><img src="iconos/mensaje.png" width="18" height="18" alt="mensajes"></span> Mensajes</a></li>
+        <li><a href="#pagina-alarmas" class="activo"><span class="nav-icon icono-svg"><img src="iconos/campana.png" width="18" height="18" alt="alarmas"></span> Citas</a></li>
+        <li><a href="#pagina-perfil"><span class="nav-icon icono-svg"><img src="iconos/usuario.png" width="18" height="18" alt="perfil"></span> Perfil</a></li>
+      </ul></div></nav>
+      <main class="app-main">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
+          <div>
+            <h2>Citas médicas</h2>
+            <p style="color:var(--texto-suave);">Tus citas agendadas</p>
+          </div>
+          <a href="#pagina-agendar-cita"><button class="btn-verde" style="display:flex;align-items:center;gap:6px;"><img src="iconos/calendario.png" width="16" height="16" alt="agendar"> Nueva cita</button></a>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Tus citas</h3></div>
+          <div id="lista-citas-alarmas" class="alarma-grupo">
+            <p style="color:var(--texto-suave);padding:16px 0;">Cargando citas...</p>
+          </div>
+        </div>
+
+        <!-- Medicamentos (estáticos por ahora) (PROXIMOS AVANCES) -->
+        <div class="card" style="margin-top:20px;">
+          <div class="card-header"><h3>Medicamentos activos</h3></div>
+          <div class="alarma-grupo">
+            <div class="alarma-item"><div class="alarma-icono icono-svg"><img src="iconos/pastilla.png" width="18" height="18" alt="med"></div><div class="alarma-info"><span class="alarma-nombre">Metformina</span><div class="alarma-detalle"><span>Después de cada comida</span></div></div><div class="alarma-hora"><strong>12:30 pm</strong><span>Hoy</span></div></div>
+            <div class="alarma-item"><div class="alarma-icono icono-svg"><img src="iconos/pastilla.png" width="18" height="18" alt="med"></div><div class="alarma-info"><span class="alarma-nombre">Insulina</span><div class="alarma-detalle"><span>Antes de dormir</span></div></div><div class="alarma-hora"><strong>8:00 pm</strong><span>Hoy</span></div></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ AGENDAR CITA ══════════════════════════ -->
+  <section id="pagina-agendar-cita">
+    <header class="app-header">
+      <div class="header-marca"><div class="header-logo"><img src="imagenes/Logotecuido.sinN.png" alt="Logo" /></div><span>Te cuido</span></div>
+      <div class="header-acciones">
+        <a href="#pagina-alarmas"><button class="btn-ghost" style="font-size:.85rem;">← Volver</button></a>
+      </div>
+    </header>
+    <div class="app-cuerpo">
+      <nav class="sidebar"><div class="sidebar-nav"><ul>
+        <li><a href="#pagina-dashboard"><span class="nav-icon icono-svg"><img src="iconos/home.png" width="18" height="18" alt="inicio"></span> Inicio</a></li>
+        <li><a href="#pagina-seguimiento"><span class="nav-icon icono-svg"><img src="iconos/chart.png" width="18" height="18" alt="seguimiento"></span> Seguimiento</a></li>
+        <li><a href="#pagina-mensajes"><span class="nav-icon icono-svg"><img src="iconos/mensaje.png" width="18" height="18" alt="mensajes"></span> Mensajes</a></li>
+        <li><a href="#pagina-alarmas" class="activo"><span class="nav-icon icono-svg"><img src="iconos/campana.png" width="18" height="18" alt="alarmas"></span> Citas</a></li>
+        <li><a href="#pagina-perfil"><span class="nav-icon icono-svg"><img src="iconos/usuario.png" width="18" height="18" alt="perfil"></span> Perfil</a></li>
+      </ul></div></nav>
+      <main class="app-main" style="max-width:560px;">
+        <h2 style="margin-bottom:6px;">Agendar cita médica</h2>
+        <p style="color:var(--texto-suave);margin-bottom:24px;">Programa tu próxima cita</p>
+        <div class="card">
+          <form id="formulario-cita" novalidate>
+            <div class="campo-fila">
+              <div class="campo"><label for="cita-fecha">Fecha</label><input type="date" id="cita-fecha" required /></div>
+              <div class="campo"><label for="cita-hora">Hora</label><input type="time" id="cita-hora" required /></div>
+            </div>
+            <div class="campo">
+              <label for="cita-motivo">Motivo / Especialidad</label>
+              <input type="text" id="cita-motivo" placeholder="Ej: Control con internista" />
+            </div>
+            <button type="submit" class="btn-verde btn-full" style="margin-top:12px;">Agendar cita</button>
+          </form>
+        </div>
+      </main>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ PERFIL ══════════════════════════ -->
+  <section id="pagina-perfil">
+    <header class="app-header">
+      <div class="header-marca"><div class="header-logo"><img src="imagenes/Logotecuido.sinN.png" alt="Logo" /></div><span>Te cuido</span></div>
+      <div class="header-acciones">
+        <button class="btn-danger" data-accion="cerrar-sesion" style="display:flex;align-items:center;gap:6px;"><img src="iconos/salir.png" width="16" height="16" alt="salir"> Cerrar sesión</button>
+      </div>
+    </header>
+    <div class="app-cuerpo">
+      <nav class="sidebar"><div class="sidebar-nav"><ul>
+        <li><a href="#pagina-dashboard"><span class="nav-icon icono-svg"><img src="iconos/home.png" width="18" height="18" alt="inicio"></span> Inicio</a></li>
+        <li><a href="#pagina-seguimiento"><span class="nav-icon icono-svg"><img src="iconos/chart.png" width="18" height="18" alt="seguimiento"></span> Seguimiento</a></li>
+        <li><a href="#pagina-mensajes"><span class="nav-icon icono-svg"><img src="iconos/mensaje.png" width="18" height="18" alt="mensajes"></span> Mensajes</a></li>
+        <li><a href="#pagina-alarmas"><span class="nav-icon icono-svg"><img src="iconos/campana.png" width="18" height="18" alt="alarmas"></span> Citas</a></li>
+        <li><a href="#pagina-perfil" class="activo"><span class="nav-icon icono-svg"><img src="iconos/usuario.png" width="18" height="18" alt="perfil"></span> Perfil</a></li>
+      </ul></div></nav>
+      <main class="app-main">
+        <div class="perfil-header-sec card">
+          <div class="perfil-foto"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%232d7d5a'/%3E%3Ccircle cx='20' cy='15' r='7' fill='%23fff' opacity='.9'/%3E%3Cellipse cx='20' cy='34' rx='12' ry='9' fill='%23fff' opacity='.9'/%3E%3C/svg%3E" alt="Foto de perfil" class="avatar-usuario" /></div>
+          <h2 class="perfil-nombre">Cargando...</h2>
+          <p class="perfil-rol">—</p>
+        </div>
+        <div class="card" style="margin:20px 0;">
+          <div class="card-header"><h3>Datos personales</h3><a href="#" class="ver-todo" id="btn-editar-perfil">Editar</a></div>
+          <div class="datos-grid">
+            <div class="dato-item"><div class="dato-label">Nombre completo</div><div class="dato-valor">—</div></div>
+            <div class="dato-item"><div class="dato-label">Documento</div><div class="dato-valor">—</div></div>
+            <div class="dato-item"><div class="dato-label">Teléfono</div><div class="dato-valor">—</div></div>
+            <div class="dato-item"><div class="dato-label">Correo</div><div class="dato-valor">—</div></div>
+            <div class="dato-item"><div class="dato-label">EPS</div><div class="dato-valor">—</div></div>
+            <div class="dato-item"><div class="dato-label">Fecha de nacimiento</div><div class="dato-valor">—</div></div>
+            <div class="dato-item"><div class="dato-label">Rol</div><div class="dato-valor">—</div></div>
+          </div>
+        </div>
+        <!-- Tarjeta enfermedades -->
+        <div class="card" id="card-enfermedades" style="margin-bottom:20px;">
+          <div class="card-header"><h3>Condiciones médicas</h3></div>
+          <div id="perfil-enfermedades-lista" style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0;">
+            <span style="color:var(--texto-suave);font-size:.85rem;">Cargando…</span>
+          </div>
+          <div id="perfil-otras-enfermedades" style="margin-top:10px;font-size:.82rem;color:var(--texto-suave);"></div>
+        </div>
+        <!-- ── Tarjeta datos biométricos ── -->
+        <div class="card bio-card" id="card-biometricos" style="margin-bottom:20px;">
+          <div class="card-header">
+            <h3>📐 Datos biométricos</h3>
+            <button class="btn-ghost btn-sm" id="btn-editar-bio">Editar</button>
+          </div>
+
+          <!-- Vista resumen (lectura) -->
+          <div id="bio-resumen">
+            <div class="datos-grid" id="bio-datos-grid">
+              <div class="dato-item"><div class="dato-label">Estatura</div><div class="dato-valor" id="bio-estatura">—</div></div>
+              <div class="dato-item"><div class="dato-label">Peso actual</div><div class="dato-valor" id="bio-peso">—</div></div>
+              <div class="dato-item"><div class="dato-label">IMC</div><div class="dato-valor" id="bio-imc">—</div></div>
+              <div class="dato-item"><div class="dato-label">Actividad física</div><div class="dato-valor" id="bio-actividad">—</div></div>
+              <div class="dato-item"><div class="dato-label">Condición especial</div><div class="dato-valor" id="bio-condicion">—</div></div>
+            </div>
+            <div id="bio-rangos-preview" style="margin-top:14px;display:none;">
+              <p style="font-size:.78rem;color:var(--texto-suave);margin-bottom:8px;">
+                📊 Rangos personalizados generados:
+              </p>
+              <div id="bio-rangos-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+            <p id="bio-vacio" style="color:var(--texto-suave);font-size:.85rem;padding:8px 0;">
+              Completa tus datos biométricos para obtener rangos de signos vitales personalizados.
+            </p>
+          </div>
+
+          <!-- Formulario biométricos (oculto por defecto) -->
+          <form id="formulario-biometricos" novalidate style="display:none;margin-top:16px;">
+
+            <div class="campo-fila">
+              <div class="campo">
+                <label for="bio-input-estatura">Estatura (cm)</label>
+                <input type="number" id="bio-input-estatura" min="100" max="220"
+                       placeholder="Ej: 168" step="1" required />
+              </div>
+              <div class="campo">
+                <label for="bio-input-peso">Peso actual (kg)</label>
+                <input type="number" id="bio-input-peso" min="20" max="300"
+                       placeholder="Ej: 70" step="0.1" required />
+              </div>
+            </div>
+
+            <!-- IMC en tiempo real -->
+            <div id="bio-imc-preview" style="display:none;margin-bottom:12px;">
+              <div class="bio-imc-card">
+                <span class="bio-imc-valor" id="bio-imc-num">—</span>
+                <span class="bio-imc-label" id="bio-imc-cat">—</span>
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="bio-input-actividad">Nivel de actividad física</label>
+              <select id="bio-input-actividad" required>
+                <option value="">Selecciona...</option>
+                <option value="sedentario">Sedentario (poco o ningún ejercicio)</option>
+                <option value="moderado">Moderado (ejercicio 1-3 días/semana)</option>
+                <option value="activo">Activo (ejercicio 4-5 días/semana)</option>
+                <option value="atleta">Atleta (entrenamiento diario intenso)</option>
+              </select>
+            </div>
+
+            <div class="campo">
+              <label for="bio-input-condicion">Condición especial de salud</label>
+              <select id="bio-input-condicion">
+                <option value="ninguna">Ninguna</option>
+                <option value="hipertenso">Hipertensión diagnosticada</option>
+                <option value="diabetico">Diabetes diagnosticada</option>
+                <option value="embarazada">Embarazo</option>
+                <option value="cardiaco">Enfermedad cardíaca</option>
+              </select>
+            </div>
+
+            <div id="bio-error" class="sv-error-msg" style="display:none;"></div>
+
+            <div style="display:flex;gap:10px;margin-top:16px;">
+              <button type="submit" class="btn-verde" style="flex:1;" id="bio-btn-guardar">
+                💾 Guardar y calcular rangos
+              </button>
+              <button type="button" class="btn-ghost" id="bio-btn-cancelar">Cancelar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Configuración</h3></div>
+          <div class="opciones-perfil-lista">
+            <div class="opcion-perfil" id="btn-editar-perfil-full"><div class="opcion-icono icono-svg"><img src="iconos/editar.png" width="16" height="16" alt="editar"></div> Editar perfil <span class="opcion-flecha icono-svg"><img src="iconos/flecha.png" width="16" height="16" alt="ver más"></span></div>
+            <div class="opcion-perfil"><div class="opcion-icono icono-svg"><img src="iconos/campana.png" width="16" height="16" alt="campana"></div> Notificaciones <span class="opcion-flecha icono-svg"><img src="iconos/flecha.png" width="16" height="16" alt="ver más"></span></div>
+            <div class="opcion-perfil"><div class="opcion-icono icono-svg"><img src="iconos/configuracion.png" width="16" height="16" alt="config"></div> Configuraciones <span class="opcion-flecha icono-svg"><img src="iconos/flecha.png" width="16" height="16" alt="ver más"></span></div>
+            <div class="opcion-perfil" id="btn-generar-informe"><div class="opcion-icono icono-svg"><img src="iconos/chart.png" width="16" height="16" alt="informe"></div> Descargar informe PDF <span class="opcion-flecha icono-svg"><img src="iconos/flecha.png" width="16" height="16" alt="ver más"></span></div>
+            <div class="opcion-perfil"><div class="opcion-icono icono-svg"><img src="iconos/ayuda.png" width="16" height="16" alt="ayuda"></div> Ayuda y soporte <span class="opcion-flecha icono-svg"><img src="iconos/flecha.png" width="16" height="16" alt="ver más"></span></div>
+          </div>
+          <div style="margin-top:16px;">
+            <button class="btn-danger btn-full" data-accion="cerrar-sesion" style="display:flex;align-items:center;justify-content:center;gap:6px;"><img src="iconos/salir.png" width="16" height="16" alt="salir"> Cerrar sesión</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- Vue.js 3 — framework reactivo para el módulo de signos vitales -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Chart.js — gráficas de evolución -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- script.js PRIMERO: define App, api() y mostrarToast() globales -->
+  <script src="script.js"></script>
+  <!-- Vue component DESPUÉS: necesita que script.js ya esté cargado -->
+  <script src="signos-vitales_vue.js"></script>
+</body>
+</html>
