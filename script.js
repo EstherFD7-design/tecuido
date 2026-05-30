@@ -13,7 +13,7 @@ const API_URL = 'api.php';   // misma carpeta que el HTML
 const $  = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 
-/* ── Exposición global para que Vue (scope separado) pueda acceder ── */
+/* ── Exposición global para que Vue  pueda acceder ── */
 window.App     = App;
 window.API_URL = API_URL;
 // NOTA: window.api y window.mostrarToast se exponen abajo,
@@ -39,16 +39,19 @@ function restaurarSesion() {
 }
 
 function limpiarSesion() {
-  // Limpiar caché específico del usuario ANTES de borrar App.usuario
+  // Limpiar caché de sesión del usuario actual ANTES de borrar App.usuario
+  // IMPORTANTE: NO borrar tc_meds_${uid} — son los medicamentos guardados del paciente y deben persistir para cuando vuelva a iniciar sesión.
   if (App.usuario?.id) {
     const uid = App.usuario.id;
     localStorage.removeItem(`tc_signos_historial_${uid}`);
     localStorage.removeItem(`tc_signos_parametros_${uid}`);
     localStorage.removeItem(`tc_citas_${uid}`);
   }
-  // También limpiar claves legacy por si acaso
+  // Limpiar claves legacy de signos (sin UID)
   localStorage.removeItem('tc_signos_historial');
   localStorage.removeItem('tc_signos_parametros');
+  // Limpiar caché en memoria de la sesión activa
+  App._medsBackend = null;
   App.usuario = null;
   App.token   = null;
   localStorage.removeItem('tc_token');
@@ -469,6 +472,13 @@ async function cargarDashboard() {
 
   if (!App.token || App.usuario?.rol !== 'paciente') return;
 
+  // Limpiar contenedores del dashboard ANTES de las llamadas API
+  // para evitar que aparezcan datos del usuario anterior mientras carga
+  const contMeds = $('.medicamentos-dashboard');
+  if (contMeds) contMeds.innerHTML = '<p style="color:var(--texto-suave);padding:12px 0;font-size:.85rem;">Cargando medicamentos...</p>';
+  const contCitas = $('.citas-lista');
+  if (contCitas) contCitas.innerHTML = '<p style="color:var(--texto-suave);padding:12px 0;font-size:.85rem;">Cargando citas...</p>';
+
   // Las 3 peticiones se lanzan en paralelo con Promise.all
   // Tiempo total = el más lento de los 3, no la suma de los 3
   const [resCitas, resMeds, resNotif] = await Promise.all([
@@ -503,8 +513,8 @@ async function cargarDashboard() {
     App._medsBackend = resMeds.medicamentos;
     const cont = $('.medicamentos-dashboard');
     if (cont) {
-      // Combinar con los locales del usuario
-      const medsLocales = getMedsLocal();
+      // Priorizar locales del usuario actual; si no hay, usar backend
+      const medsLocales = getMedsLocal(); // clave tc_meds_${App.usuario.id} — ya aislado por UID
       const todos = medsLocales.length ? medsLocales : resMeds.medicamentos.map(m => ({
         id: `backend_${m.id_medicamento}`, nombre: m.nombre,
         funcion: m.horario || '—', dosis: m.dosis || '', horarios: [], alarma: false,
@@ -521,18 +531,22 @@ async function cargarDashboard() {
       }).join('');
     }
   } else {
-    // Si no hay meds en backend, mostrar los locales
-    const medsLocales = getMedsLocal();
-    if (medsLocales.length) {
-      const cont = $('.medicamentos-dashboard');
-      if (cont) cont.innerHTML = medsLocales.slice(0, 3).map(m => `
-        <div class="medicamento-item" style="cursor:pointer;" onclick="irA('pagina-medicamentos')">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div class="seguimiento-icono icono-svg"><img src="iconos/pastilla.png" width="16" height="16" alt="med"></div>
-            <div class="medicamento-info"><strong>${m.nombre}</strong><p>${m.funcion || '—'}</p></div>
-          </div>
-          <div class="medicamento-hora">${m.horarios?.[0] ? formatHora12(m.horarios[0]) : (m.dosis || '—')}</div>
-        </div>`).join('');
+    // mostrar locales del usuario actual (tc_meds_${App.usuario.id})
+    const cont = $('.medicamentos-dashboard');
+    if (cont) {
+      const medsLocales = getMedsLocal();
+      if (medsLocales.length) {
+        cont.innerHTML = medsLocales.slice(0, 3).map(m => `
+          <div class="medicamento-item" style="cursor:pointer;" onclick="irA('pagina-medicamentos')">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="seguimiento-icono icono-svg"><img src="iconos/pastilla.png" width="16" height="16" alt="med"></div>
+              <div class="medicamento-info"><strong>${m.nombre}</strong><p>${m.funcion || '—'}</p></div>
+            </div>
+            <div class="medicamento-hora">${m.horarios?.[0] ? formatHora12(m.horarios[0]) : (m.dosis || '—')}</div>
+          </div>`).join('');
+      } else {
+        cont.innerHTML = '<p style="color:var(--texto-suave);padding:12px 0;font-size:.85rem;">No tienes medicamentos activos.</p>';
+      }
     }
   }
 
@@ -646,7 +660,7 @@ function configurarFormSigno() {
 }
 
 
-/* ════  MÓDULO MEDICAMENTOS ════════════ */
+/* ═════ MÓDULO MEDICAMENTOS ═══════ */
 
 // Estado local del módulo (aislado por usuario)
 const MedModule = {
