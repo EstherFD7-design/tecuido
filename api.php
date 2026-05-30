@@ -650,7 +650,78 @@ switch ($accion) {
 
         responder(200, ['ok' => true, 'medicamentos' => $stmt->fetchAll()]);
 
-// ═════ MÓDULO MENSAJES (paciente ↔ familiar) ═════ //
+// ═════ MÓDULO MEDICAMENTOS LOCALES ═════ //
+
+    // ── GUARDAR / ACTUALIZAR MEDICAMENTO LOCAL ─────────────────────────────
+    case 'guardar_medicamento_local':
+        $usuario    = autenticar();
+        $idPaciente = getPacienteId($usuario);
+        $pdo        = conectar();
+
+        $med = $body['med'] ?? null;
+        if (!$med || empty($med['nombre'])) {
+            responder(400, ['error' => 'Datos de medicamento incompletos.']);
+        }
+
+        $nombre    = trim($med['nombre']);
+        $funcion   = trim($med['funcion'] ?? '');
+        $dosis     = trim($med['dosis'] ?? '');
+        $momento   = trim($med['momento'] ?? '');
+        $notas     = trim($med['notas'] ?? '');
+        $alarma    = !empty($med['alarma']) ? 1 : 0;
+        $horarios  = json_encode($med['horarios'] ?? []);
+        $fInicio   = $med['fecha_inicio'] ?? date('Y-m-d');
+        $fFin      = !empty($med['fecha_fin']) ? $med['fecha_fin'] : null;
+        $clientId  = trim($med['id'] ?? '');
+
+        // Buscar si ya existe un registro con ese client_id para este paciente
+        $stmt = $pdo->prepare(
+            'SELECT id_pm FROM medicamento_detalle WHERE id_paciente = ? AND client_id = ? LIMIT 1'
+        );
+        $stmt->execute([$idPaciente, $clientId]);
+        $existe = $stmt->fetch();
+
+        if ($existe) {
+            // Actualizar
+            $pdo->prepare(
+                'UPDATE medicamento_detalle
+                 SET nombre=?, funcion=?, dosis=?, momento=?, notas=?, alarma=?, horarios=?, fecha_inicio=?, fecha_fin=?
+                 WHERE id_pm=?'
+            )->execute([$nombre, $funcion, $dosis, $momento, $notas, $alarma, $horarios, $fInicio, $fFin, $existe['id_pm']]);
+        } else {
+            // Insertar
+            $pdo->prepare(
+                'INSERT INTO medicamento_detalle
+                 (id_paciente, client_id, nombre, funcion, dosis, momento, notas, alarma, horarios, fecha_inicio, fecha_fin)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?)'
+            )->execute([$idPaciente, $clientId, $nombre, $funcion, $dosis, $momento, $notas, $alarma, $horarios, $fInicio, $fFin]);
+        }
+
+        responder(200, ['ok' => true, 'mensaje' => 'Medicamento guardado.']);
+
+    // ── LISTAR MEDICAMENTOS DETALLADOS ─────────────────────────────────────
+    case 'mis_medicamentos_detalle':
+        $usuario    = autenticar();
+        $idPaciente = getPacienteId($usuario);
+
+        $stmt = conectar()->prepare(
+            'SELECT id_pm, client_id, nombre, funcion, dosis, momento, notas, alarma, horarios, fecha_inicio, fecha_fin
+             FROM medicamento_detalle
+             WHERE id_paciente = ?
+             ORDER BY fecha_inicio DESC'
+        );
+        $stmt->execute([$idPaciente]);
+        $rows = $stmt->fetchAll();
+
+        // Decodificar horarios JSON
+        foreach ($rows as &$r) {
+            $r['horarios'] = json_decode($r['horarios'] ?? '[]', true) ?: [];
+            $r['alarma']   = (bool)$r['alarma'];
+        }
+
+        responder(200, ['ok' => true, 'medicamentos' => $rows]);
+
+// ════ MÓDULO MENSAJES (paciente ↔ familiar) ═════ //
 
     // ── ENVIAR MENSAJE ────────────────────────────────────────
     case 'enviar_mensaje':

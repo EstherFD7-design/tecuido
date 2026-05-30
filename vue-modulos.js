@@ -1855,6 +1855,685 @@ function iniciarVueCitas() {
   window._vueCitasApp = appCitas.mount('#app-citas');
 }
 
+/* ══════ SECCIÓN 3 — MEDICAMENTOS (Vue.js) (AVANCE) ═══════ */
+
+/* ── Estilos del módulo ── */
+const ESTILOS_MEDICAMENTOS = `
+/* ── Raíz ── */
+.meds-vue-root { font-family: inherit; }
+
+/* ── Modal overlay ── */
+.meds-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 9999;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.meds-modal-box {
+  background: var(--superficie, #fff);
+  border-radius: 16px;
+  max-width: 520px;
+  width: 100%;
+  margin: auto;
+  padding: 28px 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.22);
+}
+.meds-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.meds-modal-header h3 { margin: 0; font-size: 1.1rem; color: var(--texto); }
+.meds-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--texto-suave);
+  line-height: 1;
+}
+
+/* ── Form groups ── */
+.meds-form-group { margin-bottom: 14px; }
+.meds-form-label {
+  display: block;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--texto);
+  margin-bottom: 5px;
+}
+.meds-form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--borde, #d1d5db);
+  border-radius: 10px;
+  font-size: .92rem;
+  color: var(--texto);
+  background: var(--fondo, #fff);
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color .2s;
+}
+.meds-form-input:focus {
+  outline: none;
+  border-color: var(--verde, #2d7d5a);
+  background: var(--verde-suave, #f0faf5);
+}
+
+/* ── Horarios ── */
+.meds-horario-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.meds-horario-label {
+  font-size: .8rem;
+  color: var(--texto-suave);
+  width: 60px;
+  flex-shrink: 0;
+}
+.meds-horario-input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1.5px solid var(--borde, #d1d5db);
+  border-radius: 8px;
+  font-size: .88rem;
+  font-family: inherit;
+}
+.meds-horario-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--rojo-suave, #ef4444);
+  font-size: 1rem;
+  padding: 4px;
+}
+
+/* ── Toggle switch ── */
+.meds-toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+.meds-toggle input { opacity: 0; width: 0; height: 0; }
+.meds-toggle-slider {
+  position: absolute; cursor: pointer;
+  inset: 0; background: #ccc; border-radius: 24px;
+  transition: .3s;
+}
+.meds-toggle-slider:before {
+  position: absolute; content: '';
+  height: 18px; width: 18px;
+  left: 3px; bottom: 3px;
+  background: #fff; border-radius: 50%;
+  transition: .3s;
+}
+.meds-toggle input:checked + .meds-toggle-slider { background: var(--verde, #2d7d5a); }
+.meds-toggle input:checked + .meds-toggle-slider:before { transform: translateX(20px); }
+
+/* ── Alarma box ── */
+.meds-alarma-box {
+  background: var(--fondo, #f8fafb);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.meds-alarma-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.meds-alarma-aviso {
+  margin-top: 10px;
+  font-size: .8rem;
+  color: var(--verde, #2d7d5a);
+  background: rgba(45,125,90,.1);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+/* ── Fechas ── */
+.meds-fechas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+@media (max-width: 480px) {
+  .meds-fechas-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Botones modal ── */
+.meds-modal-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* ── Lista de medicamentos ── */
+.med-item {
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--borde, #e5e7eb);
+}
+.med-item:last-child { border-bottom: none; }
+.med-icono {
+  width: 42px; height: 42px;
+  background: var(--verde-suave, #f0faf5);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.med-cuerpo { flex: 1; min-width: 0; }
+.med-nombre { font-weight: 700; color: var(--texto); font-size: .98rem; margin-bottom: 2px; }
+.med-funcion { font-size: .82rem; color: var(--texto-suave); margin-bottom: 6px; }
+.med-detalle { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+.med-tag {
+  font-size: .73rem;
+  background: var(--fondo, #f3f4f6);
+  color: var(--texto-suave);
+  border-radius: 8px;
+  padding: 2px 8px;
+}
+.med-tag.alarma-on { background: rgba(45,125,90,.12); color: var(--verde, #2d7d5a); }
+.med-horarios { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.med-hora-chip {
+  font-size: .78rem;
+  background: var(--verde-suave, #f0faf5);
+  color: var(--verde, #2d7d5a);
+  border: 1px solid rgba(45,125,90,.2);
+  border-radius: 8px;
+  padding: 3px 9px;
+  font-weight: 600;
+}
+.med-acciones { display: flex; gap: 8px; }
+.med-btn-edit, .med-btn-del {
+  font-size: .78rem;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1.5px solid var(--borde, #d1d5db);
+  background: #fff;
+  color: var(--texto);
+  transition: all .2s;
+}
+.med-btn-edit:hover { border-color: var(--verde, #2d7d5a); color: var(--verde, #2d7d5a); }
+.med-btn-del:hover  { border-color: var(--rojo-suave, #ef4444); color: var(--rojo-suave, #ef4444); }
+
+/* ── Dosis del día ── */
+.dosis-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borde, #e5e7eb);
+}
+.dosis-item:last-child { border-bottom: none; }
+.dosis-hora-badge {
+  min-width: 70px;
+  text-align: center;
+  background: var(--verde-suave, #f0faf5);
+  color: var(--verde, #2d7d5a);
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: .82rem;
+  font-weight: 700;
+}
+.dosis-hora-badge.pasada {
+  background: var(--fondo, #f3f4f6);
+  color: var(--texto-suave);
+  text-decoration: line-through;
+}
+.dosis-nombre { font-size: .9rem; font-weight: 600; color: var(--texto); }
+.dosis-sub { font-size: .78rem; color: var(--texto-suave); margin-top: 2px; }
+
+/* ── Estado vacío ── */
+.meds-vacio {
+  text-align: center;
+  padding: 30px 0;
+  color: var(--texto-suave);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Slide transition ── */
+.meds-slide-enter-active, .meds-slide-leave-active { transition: all .2s ease; }
+.meds-slide-enter-from { opacity: 0; transform: translateY(-10px); }
+.meds-slide-leave-to  { opacity: 0; transform: translateY(-8px); }
+`;
+
+/* ── Template Vue del módulo de medicamentos ── */
+const TEMPLATE_MEDICAMENTOS = `
+<div class="meds-vue-root">
+
+  <!-- Encabezado -->
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
+    <div>
+      <h2 style="margin:0 0 4px;">💊 Mis medicamentos</h2>
+      <p style="color:var(--texto-suave);margin:0;">Gestiona tus medicamentos y recordatorios de dosis</p>
+    </div>
+    <button class="btn-verde" @click="abrirModal(null)" style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
+      <img src="iconos/pastilla.png" width="16" height="16" alt="agregar"> + Agregar medicamento
+    </button>
+  </div>
+
+  <!-- ── MODAL: Nuevo / Editar medicamento ── -->
+  <transition name="meds-slide">
+    <div v-if="mostrarModal" class="meds-overlay" @click.self="cerrarModal">
+      <div class="meds-modal-box">
+        <div class="meds-modal-header">
+          <h3>{{ editando ? 'Editar medicamento' : 'Nuevo medicamento' }}</h3>
+          <button class="meds-modal-close" @click="cerrarModal">✕</button>
+        </div>
+
+        <!-- Nombre -->
+        <div class="meds-form-group">
+          <label class="meds-form-label">Nombre del medicamento *</label>
+          <input type="text" class="meds-form-input" v-model="form.nombre"
+                 placeholder="Ej: Esomeprazol, Metformina..." />
+        </div>
+
+        <!-- Función -->
+        <div class="meds-form-group">
+          <label class="meds-form-label">Función / ¿Para qué es? *</label>
+          <input type="text" class="meds-form-input" v-model="form.funcion"
+                 placeholder="Ej: Protector gástrico, control de glucosa..." />
+        </div>
+
+        <!-- Dosis -->
+        <div class="meds-form-group">
+          <label class="meds-form-label">Dosis</label>
+          <input type="text" class="meds-form-input" v-model="form.dosis"
+                 placeholder="Ej: 20mg, 1 tableta, 2 cápsulas..." />
+        </div>
+
+        <!-- Cuándo tomarlo -->
+        <div class="meds-form-group">
+          <label class="meds-form-label">¿Cuándo tomarlo?</label>
+          <select class="meds-form-input" v-model="form.momento">
+            <option value="">Seleccionar...</option>
+            <option>Antes de cada comida</option>
+            <option>Después de cada comida</option>
+            <option>Con el desayuno</option>
+            <option>Con el almuerzo</option>
+            <option>Con la cena</option>
+            <option>En ayunas</option>
+            <option>Antes de dormir</option>
+            <option>Cada 8 horas</option>
+            <option>Cada 12 horas</option>
+            <option>Según necesidad</option>
+            <option>Otra indicación</option>
+          </select>
+        </div>
+
+        <!-- Horarios de dosis -->
+        <div class="meds-form-group">
+          <label class="meds-form-label">Horarios de dosis (hasta 4)</label>
+          <div>
+            <div class="meds-horario-row" v-for="(h, idx) in form.horarios" :key="idx">
+              <span class="meds-horario-label">{{ etiquetaHorario(idx) }}</span>
+              <input type="time" class="meds-horario-input" v-model="form.horarios[idx]" />
+              <button class="meds-horario-remove" @click="quitarHorario(idx)" title="Eliminar">✕</button>
+            </div>
+          </div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:.85rem;"
+                  @click="agregarHorario" :disabled="form.horarios.length >= 4">
+            + Agregar hora
+          </button>
+        </div>
+
+        <!-- Alarma -->
+        <div class="meds-alarma-box">
+          <div class="meds-alarma-row">
+            <div>
+              <strong style="font-size:.95rem;">🔔 Alarma fija</strong>
+              <p style="color:var(--texto-suave);font-size:.82rem;margin:2px 0 0;">
+                El navegador te notificará en cada horario registrado
+              </p>
+            </div>
+            <label class="meds-toggle">
+              <input type="checkbox" v-model="form.alarma" @change="onToggleAlarma" />
+              <span class="meds-toggle-slider"></span>
+            </label>
+          </div>
+          <div v-if="form.alarma" class="meds-alarma-aviso">
+            ✅ Las alarmas se activarán a los horarios indicados. Mantén el navegador abierto para recibirlas.
+          </div>
+        </div>
+
+        <!-- Notas -->
+        <div class="meds-form-group">
+          <label class="meds-form-label">Notas adicionales (opcional)</label>
+          <textarea class="meds-form-input" v-model="form.notas" rows="2"
+                    placeholder="Ej: Tomar con abundante agua, evitar junto con lácteos..."></textarea>
+        </div>
+
+        <!-- Fechas -->
+        <div class="meds-fechas-grid">
+          <div class="meds-form-group" style="margin-bottom:0;">
+            <label class="meds-form-label">Fecha inicio *</label>
+            <input type="date" class="meds-form-input" v-model="form.fecha_inicio" />
+          </div>
+          <div class="meds-form-group" style="margin-bottom:0;">
+            <label class="meds-form-label">Fecha fin (opcional)</label>
+            <input type="date" class="meds-form-input" v-model="form.fecha_fin" />
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="meds-modal-btns" style="margin-top:20px;">
+          <button class="btn-ghost" @click="cerrarModal">Cancelar</button>
+          <button class="btn-verde" @click="guardar">
+            {{ editando ? 'Guardar cambios' : 'Guardar medicamento' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </transition>
+
+  <!-- ── Lista de medicamentos ── -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <h3>Medicamentos activos</h3>
+      <span style="font-size:.82rem;color:var(--texto-suave);">
+        {{ medicamentos.length ? medicamentos.length + ' registrado(s)' : '' }}
+      </span>
+    </div>
+    <div v-if="!medicamentos.length" class="meds-vacio">
+      <img src="iconos/pastilla.png" width="40" height="40" alt="med"
+           style="opacity:.3;margin-bottom:10px;" />
+      <p>Aún no tienes medicamentos registrados.</p>
+      <p style="font-size:.85rem;">Presiona <strong>"+ Agregar medicamento"</strong> para comenzar.</p>
+    </div>
+    <div v-else>
+      <div class="med-item" v-for="m in medicamentos" :key="m.id">
+        <div class="med-icono">
+          <img src="iconos/pastilla.png" width="22" height="22" alt="med" />
+        </div>
+        <div class="med-cuerpo">
+          <div class="med-nombre">{{ m.nombre }}</div>
+          <div class="med-funcion">📋 {{ m.funcion }}</div>
+          <div class="med-detalle">
+            <span class="med-tag" v-if="m.dosis">💊 {{ m.dosis }}</span>
+            <span class="med-tag" v-if="m.momento">🕐 {{ m.momento }}</span>
+            <span class="med-tag" :class="m.alarma ? 'alarma-on' : ''">
+              {{ m.alarma ? '🔔 Alarma activa' : 'Sin alarma' }}
+            </span>
+            <span class="med-tag" v-if="m.fecha_fin">Hasta {{ m.fecha_fin }}</span>
+            <span class="med-tag" v-else>Sin fecha fin</span>
+            <span class="med-tag" v-if="m.notas" :title="m.notas">📝 Notas</span>
+          </div>
+          <div class="med-horarios" v-if="m.horarios && m.horarios.length">
+            <span class="med-hora-chip" v-for="h in m.horarios" :key="h">
+              {{ formatHora12(h) }}
+            </span>
+          </div>
+          <div class="med-horarios" v-else>
+            <span style="color:var(--texto-suave);font-size:.8rem;">Sin horario fijo</span>
+          </div>
+          <div class="med-acciones">
+            <button class="med-btn-edit" @click="abrirModal(m)">✏️ Editar</button>
+            <button class="med-btn-del"  @click="eliminar(m.id)">🗑️ Eliminar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Próximas dosis del día ── -->
+  <div class="card">
+    <div class="card-header"><h3>⏰ Próximas dosis de hoy</h3></div>
+    <div v-if="!proximasDosis.length" style="color:var(--texto-suave);padding:12px 0;font-size:.88rem;">
+      Agrega medicamentos con horarios para ver tus próximas dosis aquí.
+    </div>
+    <div v-else>
+      <div class="dosis-item" v-for="d in proximasDosis" :key="d.key">
+        <div class="dosis-hora-badge" :class="d.pasada ? 'pasada' : ''">
+          {{ formatHora12(d.hora) }}
+        </div>
+        <div class="dosis-info">
+          <div class="dosis-nombre">{{ d.nombre }}{{ d.dosis ? ' · ' + d.dosis : '' }}</div>
+          <div class="dosis-sub">
+            {{ d.funcion }} · {{ d.pasada ? '✓ Tomada' : '⏳ Pendiente' }}{{ d.alarma ? ' 🔔' : '' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+`;
+
+/* ═════ FUNCIÓN PRINCIPAL iniciarVueMedicamentos() ═════ */
+function iniciarVueMedicamentos() {
+  /* Insertar estilos una sola vez */
+  if (!document.getElementById('estilos-meds-vue')) {
+    const style = document.createElement('style');
+    style.id = 'estilos-meds-vue';
+    style.textContent = ESTILOS_MEDICAMENTOS;
+    document.head.appendChild(style);
+  }
+
+  const mountPoint = document.getElementById('app-medicamentos');
+  if (!mountPoint) {
+    console.warn('[VueMeds] #app-medicamentos no encontrado.');
+    return;
+  }
+
+  /* Desmontar instancia anterior */
+  if (window._vueMedsApp) {
+    try { window._vueMedsApp.unmount(); } catch(e) {}
+    window._vueMedsApp = null;
+  }
+  mountPoint.innerHTML = '';
+
+  /* ── Helpers de almacenamiento local ── */
+  function medStorageKey() {
+    const uid = window.App?.usuario?.id || 'anonimo';
+    return `tc_meds_${uid}`;
+  }
+  function getMedsLocal() {
+    try { return JSON.parse(localStorage.getItem(medStorageKey()) || '[]'); } catch { return []; }
+  }
+  function saveMedsLocal(arr) {
+    localStorage.setItem(medStorageKey(), JSON.stringify(arr));
+  }
+
+  /* ── Helpers de alarmas (reusan el MedModule global de script.js si existe) ── */
+  function programarAlarmasVue(meds) {
+    if (typeof window.programarTodasLasAlarmasVue === 'function') {
+      window.programarTodasLasAlarmasVue(meds);
+    }
+  }
+
+  const appMeds = Vue.createApp({
+    template: TEMPLATE_MEDICAMENTOS,
+
+    data() {
+      return {
+        medicamentos: [],
+        mostrarModal:  false,
+        editando:      false,
+        editId:        null,
+        form: {
+          nombre:       '',
+          funcion:      '',
+          dosis:        '',
+          momento:      '',
+          horarios:     [''],
+          alarma:       false,
+          notas:        '',
+          fecha_inicio: new Date().toISOString().split('T')[0],
+          fecha_fin:    '',
+        },
+      };
+    },
+
+    computed: {
+      proximasDosis() {
+        const ahora = new Date();
+        const ahoraHHMM = String(ahora.getHours()).padStart(2,'0') + String(ahora.getMinutes()).padStart(2,'0');
+        const dosis = [];
+        this.medicamentos.forEach(m => {
+          (m.horarios || []).forEach(h => {
+            if (!h) return;
+            const hhmm = h.replace(':', '').padStart(4, '0');
+            dosis.push({ key: `${m.id}_${h}`, nombre: m.nombre, funcion: m.funcion || '', dosis: m.dosis || '', hora: h, alarma: !!m.alarma, pasada: parseInt(hhmm) < parseInt(ahoraHHMM) });
+          });
+        });
+        return dosis.sort((a, b) => a.hora.localeCompare(b.hora));
+      },
+    },
+
+    methods: {
+      cargar() {
+        this.medicamentos = getMedsLocal();
+        // Importar meds del backend si existen
+        if (window.App?._medsBackend?.length) {
+          window.App._medsBackend.forEach(bm => {
+            const existe = this.medicamentos.some(m => m.id === `backend_${bm.id_medicamento}`);
+            if (!existe) {
+              this.medicamentos.push({
+                id: `backend_${bm.id_medicamento}`,
+                nombre: bm.nombre,
+                funcion: bm.horario || '—',
+                dosis: bm.dosis || '',
+                momento: bm.horario || '',
+                notas: '',
+                alarma: false,
+                horarios: [],
+                fecha_inicio: bm.fecha_inicio || '',
+                fecha_fin: bm.fecha_fin || null,
+              });
+            }
+          });
+          saveMedsLocal(this.medicamentos);
+          window.App._medsBackend = null;
+        }
+      },
+
+      abrirModal(med) {
+        if (med) {
+          this.editando   = true;
+          this.editId     = med.id;
+          this.form = {
+            nombre:       med.nombre || '',
+            funcion:      med.funcion || '',
+            dosis:        med.dosis || '',
+            momento:      med.momento || '',
+            horarios:     med.horarios?.length ? [...med.horarios] : [''],
+            alarma:       !!med.alarma,
+            notas:        med.notas || '',
+            fecha_inicio: med.fecha_inicio || new Date().toISOString().split('T')[0],
+            fecha_fin:    med.fecha_fin || '',
+          };
+        } else {
+          this.editando   = false;
+          this.editId     = null;
+          this.form = {
+            nombre: '', funcion: '', dosis: '', momento: '',
+            horarios: [''], alarma: false, notas: '',
+            fecha_inicio: new Date().toISOString().split('T')[0],
+            fecha_fin: '',
+          };
+        }
+        this.mostrarModal = true;
+      },
+
+      cerrarModal() {
+        this.mostrarModal = false;
+      },
+
+      agregarHorario() {
+        if (this.form.horarios.length < 4) this.form.horarios.push('');
+      },
+
+      quitarHorario(idx) {
+        this.form.horarios.splice(idx, 1);
+        if (!this.form.horarios.length) this.form.horarios.push('');
+      },
+
+      etiquetaHorario(idx) {
+        return ['Mañana', 'Mediodía', 'Tarde', 'Noche'][idx] || `Dosis ${idx + 1}`;
+      },
+
+      onToggleAlarma() {
+        if (this.form.alarma && typeof window.solicitarPermisosNotificacion === 'function') {
+          window.solicitarPermisosNotificacion();
+        }
+      },
+
+      guardar() {
+        const { nombre, funcion, fecha_inicio } = this.form;
+        if (!nombre.trim()) { window.mostrarToast?.('⚠️', 'Nombre requerido', 'Escribe el nombre del medicamento.'); return; }
+        if (!funcion.trim()) { window.mostrarToast?.('⚠️', 'Función requerida', 'Indica para qué es el medicamento.'); return; }
+        if (!fecha_inicio) { window.mostrarToast?.('⚠️', 'Fecha requerida', 'Selecciona la fecha de inicio.'); return; }
+
+        const horariosFiltrados = this.form.horarios.filter(h => h && h.trim());
+        const meds = getMedsLocal();
+        const now  = Date.now();
+
+        if (this.editando && this.editId) {
+          const idx = meds.findIndex(m => String(m.id) === String(this.editId));
+          if (idx > -1) {
+            meds[idx] = { ...meds[idx], ...this.form, horarios: horariosFiltrados };
+          }
+          window.mostrarToast?.('✅', 'Medicamento actualizado', nombre.trim());
+        } else {
+          const uid = window.App?.usuario?.id || 0;
+          meds.push({ id: `${uid}_${now}`, ...this.form, nombre: nombre.trim(), funcion: funcion.trim(), horarios: horariosFiltrados });
+          window.mostrarToast?.('✅', 'Medicamento agregado', nombre.trim());
+        }
+
+        saveMedsLocal(meds);
+        this.medicamentos = meds;
+        this.cerrarModal();
+
+        // Reprogramar alarmas
+        if (typeof window.programarTodasLasAlarmas === 'function') window.programarTodasLasAlarmas();
+
+        // Sincronizar con backend
+        if (window.App?.token) {
+          const med = meds[meds.length - 1];
+          window.api?.('guardar_medicamento_local', { med }, true).catch(() => {});
+        }
+      },
+
+      eliminar(id) {
+        if (!confirm('¿Eliminar este medicamento?')) return;
+        if (typeof window.cancelarAlarmasMed === 'function') window.cancelarAlarmasMed(id);
+        this.medicamentos = this.medicamentos.filter(m => String(m.id) !== String(id));
+        saveMedsLocal(this.medicamentos);
+        window.mostrarToast?.('🗑️', 'Medicamento eliminado', '');
+      },
+
+      formatHora12(hhmm) {
+        if (!hhmm) return '';
+        const [h, m] = hhmm.split(':').map(Number);
+        const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+        const h12  = h % 12 || 12;
+        return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+      },
+    },
+
+    mounted() {
+      this.cargar();
+    },
+  });
+
+  window._vueMedsApp = appMeds.mount('#app-medicamentos');
+  console.log('[VueMeds] Módulo medicamentos montado ✓');
+}
+
+window.iniciarVueMedicamentos = iniciarVueMedicamentos;
+
 /* ════ BOOTSTRAP UNIFICADO ══════ */
 
 /**

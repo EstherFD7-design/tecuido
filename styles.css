@@ -481,12 +481,15 @@ section[id].pagina-activa { display: flex; }
   overflow: hidden;
 }
 
-/* LAYOUT PRINCIPAL (Dashboard + Perfil)*/
+/* LAYOUT PRINCIPAL (Dashboard + todas las páginas internas) */
 #pagina-dashboard,
 #pagina-perfil,
 #pagina-seguimiento,
 #pagina-mensajes,
-#pagina-alarmas {
+#pagina-alarmas,
+#pagina-medicamentos,
+#pagina-agendar-cita,
+#pagina-registrar-signo {
   flex-direction: column;
   min-height: 100vh;
   background: var(--crema);
@@ -1353,14 +1356,6 @@ section[id].pagina-activa { display: flex; }
 
 /* ═══ TE CUIDO — Avances ═══ */
 
-/* ── Páginas en avance: layout base ( flex-column) ── */
-#pagina-registrar-signo,
-#pagina-agendar-cita {
-  flex-direction: column;
-  min-height: 100vh;
-  background: var(--crema);
-}
-
 /* ── Encabezado de formulario interior (h2 + subtítulo) ── */
 .form-page-titulo {
   font-family: 'Playfair Display', serif;
@@ -2020,4 +2015,122 @@ button:disabled {
 /* Tarjeta resumen destacada */
 .sv-resumen-card--destacado {
   transition: border-color .2s, box-shadow .2s;
+}
+
+/* ══ MÓDULO MEDICAMENTOS ══ */
+.med-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.med-item:last-child { border-bottom: none; }
+.med-icono {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: rgba(45,125,90,.13);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.med-cuerpo { flex: 1; min-width: 0; }
+.med-nombre { font-weight: 700; font-size: 1rem; }
+.med-funcion { color: var(--verde-principal); font-size: .82rem; margin: 2px 0 4px; }
+.med-detalle { font-size: .82rem; color: var(--texto-suave); display: flex; flex-wrap: wrap; gap: 6px; }
+.med-tag {
+  background: var(--fondo);
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: .78rem;
+  color: var(--texto-suave);
+}
+.med-tag.alarma-on {
+  background: rgba(255,180,0,.15);
+  color: #b07c00;
+}
+.med-horarios { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.med-hora-chip {
+  background: var(--verde-principal);
+  color: #fff;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: .8rem;
+  font-weight: 600;
+}
+.med-acciones { display: flex; gap: 8px; margin-top: 8px; }
+.med-btn-edit {
+  background: none; border: 1px solid var(--borde); border-radius: 8px;
+  padding: 4px 12px; font-size: .8rem; cursor: pointer; color: var(--texto-suave);
+  transition: border-color .15s, color .15s;
+}
+.med-btn-edit:hover { border-color: var(--verde-principal); color: var(--verde-principal); }
+.med-btn-del {
+  background: none; border: 1px solid transparent; border-radius: 8px;
+  padding: 4px 12px; font-size: .8rem; cursor: pointer; color: #e53935;
+  transition: border-color .15s;
+}
+.med-btn-del:hover { border-color: #e53935; }
+
+/* Toggle switch */
+.toggle-switch { position: relative; display: inline-block; width: 48px; height: 26px; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--borde); transition: .3s; border-radius: 26px;
+}
+.toggle-slider:before {
+  position: absolute; content: "";
+  height: 20px; width: 20px; left: 3px; bottom: 3px;
+  background: #fff; transition: .3s; border-radius: 50%;
+}
+input:checked + .toggle-slider { background: var(--verde-principal); }
+input:checked + .toggle-slider:before { transform: translateX(22px); }
+
+/* Próximas dosis */
+.dosis-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--borde);
+}
+.dosis-item:last-child { border-bottom: none; }
+.dosis-hora-badge {
+  background: var(--verde-principal); color: #fff;
+  border-radius: 10px; padding: 4px 12px;
+  font-size: .85rem; font-weight: 700; white-space: nowrap;
+  min-width: 72px; text-align: center;
+}
+.dosis-hora-badge.pasada {
+  background: var(--borde); color: var(--texto-suave);
+}
+.dosis-info { flex: 1; }
+.dosis-nombre { font-weight: 600; font-size: .9rem; }
+.dosis-sub { font-size: .78rem; color: var(--texto-suave); }
+
+/* Horario row en modal */
+.horario-row { display: flex; align-items: center; gap: 8px; }
+.horario-row input[type=time] {
+  flex: 1; padding: 8px 10px;
+  border: 1px solid var(--borde); border-radius: 8px;
+  background: var(--fondo); color: var(--texto-principal); font-size:.9rem;
+}
+.horario-row .etiqueta-hora { font-size:.82rem; color:var(--texto-suave); min-width:70px; }
+.horario-row button {
+  background: none; border: none; color: #e53935;
+  font-size: 1.1rem; cursor: pointer; padding: 0 4px;
+}
+
+/* ── Desactivar Picture-in-Picture en el video de login ── */
+.auth-panel-video {
+  pointer-events: none;
+}
+
+/* ── Fix: evitar que el botón de medicamentos se desborde ── */
+.app-main {
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+.meds-vue-root {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
