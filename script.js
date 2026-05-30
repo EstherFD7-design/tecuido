@@ -44,6 +44,7 @@ function limpiarSesion() {
     const uid = App.usuario.id;
     localStorage.removeItem(`tc_signos_historial_${uid}`);
     localStorage.removeItem(`tc_signos_parametros_${uid}`);
+    localStorage.removeItem(`tc_citas_${uid}`);
   }
   // También limpiar claves legacy por si acaso
   localStorage.removeItem('tc_signos_historial');
@@ -167,6 +168,14 @@ function irA(paginaId) {
       setTimeout(() => abrirForm(12), 120);
     }, 60);
     return;
+  }
+
+  // ── Módulo Vue de citas médicas ──────────────────────────────────────────
+  if (paginaId === 'pagina-agendar-cita') {
+    setTimeout(() => {
+      if (typeof iniciarVueCitas === 'function') iniciarVueCitas();
+    }, 0);
+    // No retornar: la sección ya quedó activa por el código de irA() de arriba
   }
 }
 

@@ -1,7 +1,8 @@
-/** Vue.js **/
+/* vue-modulos.js — Módulos Vue 3 */
 
 'use strict';
 
+/* ═════════ SECCIÓN 1 — SIGNOS VITALES ══════════ */
 /* ── Parámetros de respaldo (se usan si el servidor no responde) ── */
 const PARAMETROS_FALLBACK = [
   { id_parametro: 1, nombre_parametro: 'Glucosa en sangre',      unidad: 'mg/dL', rango_min: 70,  rango_max: 100, rango_fuente: 'global', rango_personalizado: 0 },
@@ -933,10 +934,947 @@ function iniciarVueSignos() {
   }
 }
 
-/* ── Hook global para script.js ──────────────────────────── */
+/* ════════ SECCIÓN 2 — CITAS MÉDICAS ════════════════ */
+
+
+/** Lista de especialidades médicas comunes */
+const ESPECIALIDADES = [
+  'Medicina general',
+  'Cardiología',
+  'Neurología',
+  'Ortopedia',
+  'Pediatría',
+  'Geriatría',
+  'Endocrinología',
+  'Diabetología',
+  'Nutrición',
+  'Psicología',
+  'Oftalmología',
+  'Odontología',
+  'Otro / especificar',
+];
+
+/* ── Clave de caché de citas (por usuario, igual que signos vitales) ── */
+function getCitasCacheKey() {
+  const uid = window.App?.usuario?.id || 'anonimo';
+  return `tc_citas_${uid}`;
+}
+
+/** Citas de ejemplo para mostrar si la API no responde */
+const CITAS_FALLBACK = [
+  {
+    id_cita:  1,
+    fecha:    '2026-06-10',
+    hora:     '10:00:00',
+    motivo:   'Control con internista',
+    estado:   'pendiente',
+  },
+  {
+    id_cita:  2,
+    fecha:    '2026-05-20',
+    hora:     '14:30:00',
+    motivo:   'Revisión cardiología',
+    estado:   'completada',
+  },
+];
+
+/** Nombres cortos de los meses para mostrar en tarjetas */
+const MESES_CORTOS = [
+  'ene','feb','mar','abr','may','jun',
+  'jul','ago','sep','oct','nov','dic',
+];
+
+/* ═════ TEMPLATE DEL COMPONENTE ═════════ */
+
+const TEMPLATE_CITAS = `
+<div class="citas-vue-root">
+
+  <!-- ── Encabezado de sección ─────────────────── -->
+  <div class="citas-header">
+    <div>
+      <h2>Citas médicas</h2>
+      <p style="color:var(--texto-suave);">Agenda y consulta tus próximas citas</p>
+    </div>
+    <!-- Botón que abre el formulario de nueva cita -->
+    <button class="btn-verde" @click="abrirFormulario" aria-label="Agendar nueva cita">
+      <img src="iconos/calendario.png" width="16" height="16" alt="" />
+      + Nueva cita
+    </button>
+  </div>
+
+  <!-- ── Aviso de modo sin conexión ────────────── -->
+  <div
+    v-if="modoFallback"
+    class="citas-aviso-fallback"
+    role="alert"
+  >
+    ⚠️ <strong>Sin conexión.</strong>
+    Mostrando datos de ejemplo. Los cambios no se guardarán hasta reconectar.
+  </div>
+
+  <!-- ── Formulario: agendar / editar cita ─────── -->
+  <transition name="citas-slide">
+    <div v-if="mostrarFormulario" class="citas-card" role="dialog" aria-modal="true" aria-label="Formulario de cita">
+
+      <h3 class="citas-card-titulo">
+        {{ editando ? 'Editar cita' : 'Agendar nueva cita' }}
+      </h3>
+
+      <!-- FECHA Y HORA en una fila -->
+      <div class="citas-fila-doble">
+        <div class="campo">
+          <label for="cita-fecha-v">Fecha <span class="obligatorio">*</span></label>
+          <input
+            id="cita-fecha-v"
+            type="date"
+            v-model="form.fecha"
+            :min="hoyISO"
+            required
+            aria-required="true"
+          />
+          <!-- Mensaje de error de validación -->
+          <span v-if="errores.fecha" class="citas-error" role="alert">{{ errores.fecha }}</span>
+        </div>
+        <div class="campo">
+          <label for="cita-hora-v">Hora <span class="obligatorio">*</span></label>
+          <input
+            id="cita-hora-v"
+            type="time"
+            v-model="form.hora"
+            required
+            aria-required="true"
+          />
+          <span v-if="errores.hora" class="citas-error" role="alert">{{ errores.hora }}</span>
+        </div>
+      </div>
+
+      <!-- ESPECIALIDAD: lista desplegable -->
+      <div class="campo">
+        <label for="cita-especialidad-v">Especialidad <span class="obligatorio">*</span></label>
+        <select id="cita-especialidad-v" v-model="form.especialidad" aria-required="true">
+          <option value="" disabled>Selecciona una especialidad</option>
+          <option v-for="esp in especialidades" :key="esp" :value="esp">{{ esp }}</option>
+        </select>
+        <span v-if="errores.especialidad" class="citas-error" role="alert">{{ errores.especialidad }}</span>
+      </div>
+
+      <!-- MOTIVO: texto libre, aparece si elige "Otro" -->
+      <div class="campo" v-if="form.especialidad === 'Otro / especificar'">
+        <label for="cita-motivo-v">Especifica el motivo</label>
+        <input
+          id="cita-motivo-v"
+          type="text"
+          v-model="form.motivoOtro"
+          placeholder="Ej: Revisión post-operatoria"
+          maxlength="120"
+        />
+      </div>
+
+      <!-- NOTAS ADICIONALES -->
+      <div class="campo">
+        <label for="cita-notas-v">Notas adicionales (opcional)</label>
+        <textarea
+          id="cita-notas-v"
+          v-model="form.notas"
+          placeholder="Ej: Llevar resultados de laboratorio"
+          rows="2"
+          maxlength="300"
+          style="resize:vertical;"
+        ></textarea>
+      </div>
+
+      <!-- BOTONES de acción -->
+      <div class="citas-botones">
+        <button class="btn-ghost" @click="cerrarFormulario" :disabled="guardando">
+          Cancelar
+        </button>
+        <button class="btn-verde" @click="guardarCita" :disabled="guardando" aria-live="polite">
+          <span v-if="guardando">Guardando…</span>
+          <span v-else>{{ editando ? 'Guardar cambios' : 'Agendar cita' }}</span>
+        </button>
+      </div>
+
+    </div><!-- /formulario -->
+  </transition>
+
+  <!-- ── Estado de carga ────────────────────────── -->
+  <div v-if="cargando" class="citas-cargando" aria-live="polite">
+    <div class="citas-spinner" aria-hidden="true"></div>
+    <span>Cargando citas…</span>
+  </div>
+
+  <!-- ── Lista de citas ─────────────────────────── -->
+  <div v-else>
+
+    <!-- Filtros de estado (Todas / Próximas / Pasadas) -->
+    <div class="citas-filtros" role="group" aria-label="Filtrar citas">
+      <button
+        v-for="f in filtros"
+        :key="f.valor"
+        class="citas-filtro-btn"
+        :class="{ activo: filtroActual === f.valor }"
+        @click="filtroActual = f.valor"
+      >
+        {{ f.etiqueta }}
+        <!-- Badge con cantidad -->
+        <span class="citas-badge">{{ contarFiltro(f.valor) }}</span>
+      </button>
+    </div>
+
+    <!-- Mensaje si no hay citas en el filtro activo -->
+    <div v-if="citasFiltradas.length === 0" class="citas-vacio">
+      <img src="iconos/calendario.png" width="40" height="40" alt="" style="opacity:.3;margin-bottom:8px;" />
+      <p>No tienes citas {{ filtroActual === 'proximas' ? 'próximas' : filtroActual === 'pasadas' ? 'pasadas' : '' }}.</p>
+      <button class="btn-verde" style="margin-top:12px;" @click="abrirFormulario">
+        Agendar ahora
+      </button>
+    </div>
+
+    <!-- Tarjetas de cada cita -->
+    <div class="citas-lista">
+      <div
+        v-for="cita in citasFiltradas"
+        :key="cita.id_cita"
+        class="cita-card"
+        :class="'estado-' + cita.estado"
+        role="article"
+        :aria-label="'Cita: ' + motivoVisible(cita) + ' el ' + formatearFechaLegible(cita.fecha)"
+      >
+        <!-- Bloque de fecha (día / mes) -->
+        <div class="cita-fecha-bloque" aria-hidden="true">
+          <span class="cita-dia">{{ extraerDia(cita.fecha) }}</span>
+          <span class="cita-mes">{{ extraerMes(cita.fecha) }}</span>
+        </div>
+
+        <!-- Información principal -->
+        <div class="cita-info">
+          <strong>{{ motivoVisible(cita) }}</strong>
+          <p class="cita-hora-texto">🕐 {{ formatearHora(cita.hora) }}</p>
+          <p v-if="cita.notas" class="cita-notas-texto">📝 {{ cita.notas }}</p>
+        </div>
+
+        <!-- Etiqueta de estado + botón cancelar -->
+        <div class="cita-acciones">
+          <span class="cita-estado-badge" :class="'badge-' + cita.estado">
+            {{ etiquetaEstado(cita.estado) }}
+          </span>
+          <!-- Solo se puede cancelar si está pendiente -->
+          <button
+            v-if="cita.estado === 'pendiente'"
+            class="btn-ghost btn-sm cita-btn-cancelar"
+            @click="confirmarCancelacion(cita)"
+            :aria-label="'Cancelar cita del ' + formatearFechaLegible(cita.fecha)"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div><!-- /citas-lista -->
+
+  </div><!-- /v-else -->
+
+  <!-- ── Modal de confirmación de cancelación ───── -->
+  <div v-if="citaAcancelar" class="citas-overlay" @click.self="citaAcancelar = null" role="dialog" aria-modal="true" aria-label="Confirmar cancelación">
+    <div class="citas-modal">
+      <p><strong>¿Cancelar esta cita?</strong></p>
+      <p style="color:var(--texto-suave);font-size:.9rem;margin-top:6px;">
+        {{ motivoVisible(citaAcancelar) }} —
+        {{ formatearFechaLegible(citaAcancelar.fecha) }} a las {{ formatearHora(citaAcancelar.hora) }}
+      </p>
+      <div class="citas-botones" style="margin-top:20px;">
+        <button class="btn-ghost" @click="citaAcancelar = null">No, mantener</button>
+        <button class="btn-verde" style="background:var(--rojo-suave);" @click="ejecutarCancelacion" :disabled="cancelando">
+          {{ cancelando ? 'Cancelando…' : 'Sí, cancelar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /citas-vue-root -->
+`;
+
+/* ════ ESTILOS DEL COMPONENTE ═════ */
+const ESTILOS_CITAS = `
+/* ── Raíz del módulo ── */
+.citas-vue-root { font-family: inherit; }
+
+/* ── Encabezado ── */
+.citas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.citas-header h2 { margin: 0; font-size: 1.3rem; color: var(--texto); }
+
+/* ── Aviso fallback ── */
+.citas-aviso-fallback {
+  background: rgba(239,68,68,.08);
+  border: 1.5px solid var(--rojo-suave);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: .85rem;
+  color: var(--rojo-suave);
+}
+
+/* ── Tarjeta contenedora (formulario) ── */
+.citas-card {
+  background: #fff;
+  border: 1.5px solid var(--verde-borde);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(45,125,90,.08);
+}
+.citas-card-titulo {
+  margin: 0 0 18px;
+  font-size: 1.05rem;
+  color: var(--verde);
+}
+
+/* ── Fila doble (fecha + hora) ── */
+.citas-fila-doble {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 480px) {
+  .citas-fila-doble { grid-template-columns: 1fr; }
+}
+
+/* ── Select de especialidad ── */
+.citas-vue-root select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--verde-borde);
+  border-radius: 10px;
+  font-size: .95rem;
+  color: var(--texto);
+  background: #fff;
+  cursor: pointer;
+  appearance: auto;
+}
+.citas-vue-root select:focus {
+  outline: none;
+  border-color: var(--verde-claro);
+  background: var(--verde-suave);
+}
+
+/* ── Textarea ── */
+.citas-vue-root textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--verde-borde);
+  border-radius: 10px;
+  font-size: .9rem;
+  color: var(--texto);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.citas-vue-root textarea:focus {
+  outline: none;
+  border-color: var(--verde-claro);
+  background: var(--verde-suave);
+}
+
+/* ── Mensajes de error ── */
+.citas-error {
+  color: var(--rojo-suave);
+  font-size: .8rem;
+  margin-top: 4px;
+  display: block;
+}
+.obligatorio { color: var(--rojo-suave); }
+
+/* ── Botones de acción del formulario ── */
+.citas-botones {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+/* ── Filtros de estado ── */
+.citas-filtros {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.citas-filtro-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--verde-borde);
+  background: #fff;
+  color: var(--texto-medio);
+  font-size: .85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .2s;
+}
+.citas-filtro-btn.activo {
+  background: var(--verde);
+  color: #fff;
+  border-color: var(--verde);
+}
+.citas-filtro-btn:hover:not(.activo) {
+  background: var(--verde-suave);
+}
+
+/* ── Badge de conteo en filtros ── */
+.citas-badge {
+  background: rgba(255,255,255,.25);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: .75rem;
+  font-weight: 700;
+}
+.citas-filtro-btn:not(.activo) .citas-badge {
+  background: var(--verde-suave);
+  color: var(--verde);
+}
+
+/* ── Estado vacío ── */
+.citas-vacio {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--texto-suave);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Lista de tarjetas de citas ── */
+.citas-lista { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Tarjeta individual de cita ── */
+.cita-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1.5px solid var(--verde-borde);
+  border-radius: 14px;
+  padding: 14px 16px;
+  transition: box-shadow .2s;
+}
+.cita-card:hover { box-shadow: 0 4px 16px rgba(45,125,90,.12); }
+
+/* Citas canceladas se ven apagadas */
+.cita-card.estado-cancelada { opacity: .55; }
+
+/* ── Bloque de fecha (día/mes) ── */
+.cita-fecha-bloque {
+  min-width: 48px;
+  background: var(--verde-suave);
+  border: 1.5px solid var(--verde-borde);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 6px;
+  line-height: 1;
+}
+.cita-dia  { font-size: 1.4rem; font-weight: 700; color: var(--verde); }
+.cita-mes  { font-size: .7rem; color: var(--texto-suave); text-transform: uppercase; }
+
+/* ── Info de la cita ── */
+.cita-info { flex: 1; min-width: 0; }
+.cita-info strong { display: block; color: var(--texto); font-size: .95rem; }
+.cita-hora-texto  { margin: 4px 0 0; font-size: .82rem; color: var(--texto-medio); }
+.cita-notas-texto { margin: 3px 0 0; font-size: .78rem; color: var(--texto-suave); }
+
+/* ── Acciones + badge de estado ── */
+.cita-acciones {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  white-space: nowrap;
+}
+.cita-estado-badge {
+  font-size: .72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+.badge-pendiente  { background: #FFF8E1; color: #F9A825; }
+.badge-completada { background: var(--verde-suave); color: var(--verde); }
+.badge-cancelada  { background: #FFEBEE; color: var(--rojo-suave); }
+
+.cita-btn-cancelar {
+  font-size: .72rem !important;
+  padding: 4px 10px !important;
+  color: var(--rojo-suave) !important;
+  border-color: var(--rojo-suave) !important;
+}
+.cita-btn-cancelar:hover {
+  background: #FFEBEE !important;
+}
+
+/* ── Spinner de carga ── */
+.citas-cargando {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 30px 0;
+  color: var(--texto-suave);
+  justify-content: center;
+}
+.citas-spinner {
+  width: 22px; height: 22px;
+  border: 3px solid var(--verde-borde);
+  border-top-color: var(--verde);
+  border-radius: 50%;
+  animation: citas-girar .7s linear infinite;
+}
+@keyframes citas-girar { to { transform: rotate(360deg); } }
+
+/* ── Modal de confirmación ── */
+.citas-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+.citas-modal {
+  background: #fff;
+  border-radius: 18px;
+  padding: 28px 24px;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+}
+
+/* ── Transición de entrada del formulario ── */
+.citas-slide-enter-active,
+.citas-slide-leave-active { transition: all .25s ease; }
+.citas-slide-enter-from   { opacity: 0; transform: translateY(-12px); }
+.citas-slide-leave-to     { opacity: 0; transform: translateY(-8px); }
+`;
+
+/* ═════ FUNCIÓN PRINCIPAL: iniciarVueCitas() ══════ */
+
+function iniciarVueCitas() {
+  /* ── Insertar estilos una sola vez en el <head> ── */
+  if (!document.getElementById('estilos-citas-vue')) {
+    const style = document.createElement('style');
+    style.id = 'estilos-citas-vue';
+    style.textContent = ESTILOS_CITAS;
+    document.head.appendChild(style);
+  }
+
+  /* ── Buscar el punto de montaje en el DOM ─────── */
+  const mountPoint = document.getElementById('app-citas');
+  if (!mountPoint) {
+    console.warn('[VueCitas] #app-citas no encontrado en el DOM.');
+    return;
+  }
+
+  /* Limpiar instancia anterior si existía */
+  if (window._vueCitasApp) {
+    window._vueCitasApp.unmount();
+    window._vueCitasApp = null;
+  }
+  mountPoint.innerHTML = '';
+
+  /* ── Crear y montar la app Vue ─────────────────── */
+  const appCitas = Vue.createApp({
+    template: TEMPLATE_CITAS,
+
+    data() {
+      /* Estado reactivo inicial del componente */
+      return {
+        /* Lista de citas cargadas desde la API */
+        citas: [],
+
+        /* Controla si el formulario está visible */
+        mostrarFormulario: false,
+
+        /* true cuando estamos editando (no implementado en esta versión) */
+        editando: false,
+
+        /* Modelo del formulario de nueva cita */
+        form: {
+          fecha:        '',
+          hora:         '',
+          especialidad: '',
+          motivoOtro:   '',
+          notas:        '',
+        },
+
+        /* Errores de validación del formulario */
+        errores: {
+          fecha:        '',
+          hora:         '',
+          especialidad: '',
+        },
+
+        /* Lista de especialidades para el <select> */
+        especialidades: ESPECIALIDADES,
+
+        /* Filtros de la lista */
+        filtros: [
+          { valor: 'todas',   etiqueta: 'Todas'    },
+          { valor: 'proximas', etiqueta: 'Próximas' },
+          { valor: 'pasadas',  etiqueta: 'Pasadas'  },
+        ],
+        filtroActual: 'todas',
+
+        /* Estados de carga / operación */
+        cargando:  true,
+        guardando: false,
+        cancelando: false,
+
+        /* Cita seleccionada para cancelar (activa el modal) */
+        citaAcancelar: null,
+
+        /* true si la API falló y usamos datos de ejemplo */
+        modoFallback: false,
+
+        /* true si los datos vienen del caché local */
+        desdeCache: false,
+      };
+    },
+
+    computed: {
+      /**
+       * Fecha mínima para el input date: hoy en formato YYYY-MM-DD.
+       * Evita que el paciente agende citas en fechas pasadas.
+       */
+      hoyISO() {
+        return new Date().toISOString().slice(0, 10);
+      },
+
+      /**
+       * Citas filtradas según el tab activo:
+       * - "proximas": fecha >= hoy y estado != cancelada
+       * - "pasadas":  fecha < hoy o completadas
+       * - "todas":    sin ningun filtro
+       */
+      citasFiltradas() {
+        const hoy = this.hoyISO;
+        return this.citas.filter(c => {
+          if (this.filtroActual === 'proximas') {
+            return c.fecha >= hoy && c.estado !== 'cancelada';
+          }
+          if (this.filtroActual === 'pasadas') {
+            return c.fecha < hoy || c.estado === 'completada';
+          }
+          return true; // "todas"
+        });
+      },
+    },
+
+    methods: {
+      /* ── Caché local por usuario ────────────────── */
+      guardarCacheLocal() {
+        try {
+          localStorage.setItem(getCitasCacheKey(), JSON.stringify(this.citas));
+        } catch(e) {}
+      },
+
+      cargarCacheLocal() {
+        try {
+          const data = localStorage.getItem(getCitasCacheKey());
+          if (data) {
+            this.citas = JSON.parse(data);
+            this.desdeCache = true;
+          }
+        } catch(e) {}
+      },
+
+      /* ── Cargar citas desde la API (con espera de token) ── */
+      async cargarCitas() {
+        /* Esperar hasta 3 s a que el token esté disponible */
+        const esperarToken = (intentos) => new Promise((res) => {
+          const check = (n) => {
+            if (window.App?.token) { res(true); }
+            else if (n <= 0)       { res(false); }
+            else setTimeout(() => check(n - 1), 200);
+          };
+          check(intentos);
+        });
+
+        const hayToken = await esperarToken(15);
+
+        if (!hayToken) {
+          /* Sin sesión activa: limpiar citas para no mostrar datos de otro usuario */
+          this.citas        = [];
+          this.modoFallback = false;
+          this.cargando     = false;
+          return;
+        }
+
+        this.cargando = true;
+        try {
+          const resp = await window.api('mis_citas', {}, true);
+          if (resp?.ok && Array.isArray(resp.citas)) {
+            this.citas        = resp.citas;
+            this.modoFallback = false;
+            this.guardarCacheLocal();
+          } else {
+            throw new Error('Respuesta inválida de la API');
+          }
+        } catch (err) {
+          /* Si falla Y hay caché del usuario actual, usarla en lugar del fallback */
+          const cacheKey = getCitasCacheKey();
+          const cached   = localStorage.getItem(cacheKey);
+          if (cached) {
+            try {
+              this.citas        = JSON.parse(cached);
+              this.modoFallback = true;
+              console.warn('[VueCitas] API no disponible, usando caché local.', err);
+            } catch(e) {
+              this.citas        = [];
+              this.modoFallback = false;
+            }
+          } else {
+            /* Sin caché y sin API: lista vacía (no CITAS_FALLBACK global) */
+            this.citas        = [];
+            this.modoFallback = false;
+            console.warn('[VueCitas] API no disponible y sin caché. Lista vacía.', err);
+          }
+        } finally {
+          this.cargando = false;
+        }
+      },
+
+      /* ── Abrir formulario de nueva cita ────────── */
+      abrirFormulario() {
+        /* Limpiar formulario y errores antes de mostrar */
+        this.form = { fecha: '', hora: '', especialidad: '', motivoOtro: '', notas: '' };
+        this.errores = { fecha: '', hora: '', especialidad: '' };
+        this.editando = false;
+        this.mostrarFormulario = true;
+        /* Accesibilidad: mover el foco al primer campo */
+        this.$nextTick(() => {
+          const primer = document.getElementById('cita-fecha-v');
+          if (primer) primer.focus();
+        });
+      },
+
+      /* ── Cerrar formulario ─────────────────────── */
+      cerrarFormulario() {
+        this.mostrarFormulario = false;
+      },
+
+      /* ── Validar los campos del formulario ─────── */
+      validarFormulario() {
+        let valido = true;
+        /* Resetear mensajes */
+        this.errores = { fecha: '', hora: '', especialidad: '' };
+
+        if (!this.form.fecha) {
+          this.errores.fecha = 'La fecha es obligatoria.';
+          valido = false;
+        } else if (this.form.fecha < this.hoyISO) {
+          this.errores.fecha = 'La fecha no puede ser en el pasado.';
+          valido = false;
+        }
+
+        if (!this.form.hora) {
+          this.errores.hora = 'La hora es obligatoria.';
+          valido = false;
+        }
+
+        if (!this.form.especialidad) {
+          this.errores.especialidad = 'Selecciona una especialidad.';
+          valido = false;
+        }
+
+        return valido;
+      },
+
+      /* ── Guardar la nueva cita ─────────────────── */
+      async guardarCita() {
+        if (!this.validarFormulario()) return;
+
+        /* Determinar el motivo final */
+        const motivo = this.form.especialidad === 'Otro / especificar'
+          ? this.form.motivoOtro || 'Otro'
+          : this.form.especialidad;
+
+        this.guardando = true;
+        try {
+          if (this.modoFallback) {
+            /* Sin API: agregar localmente con ID temporal */
+            this.citas.unshift({
+              id_cita: Date.now(),
+              fecha:   this.form.fecha,
+              hora:    this.form.hora + ':00',
+              motivo:  motivo,
+              notas:   this.form.notas,
+              estado:  'pendiente',
+            });
+            this.guardarCacheLocal();
+            window.mostrarToast?.('✅', 'Cita guardada', 'Guardada localmente (sin conexión).');
+          } else {
+            /* Con API: enviar al servidor */
+            const resp = await window.api('agendar_cita', {
+              fecha:  this.form.fecha,
+              hora:   this.form.hora,
+              motivo: motivo,
+              notas:  this.form.notas,
+            }, true);
+
+            if (resp?.ok) {
+              window.mostrarToast?.('✅', '¡Cita agendada!', `El ${this.formatearFechaLegible(this.form.fecha)} a las ${this.formatearHora(this.form.hora + ':00')}.`);
+              /* Recargar la lista actualizada */
+              await this.cargarCitas();
+            } else {
+              throw new Error(resp?.error || 'Error al agendar la cita.');
+            }
+          }
+          this.cerrarFormulario();
+        } catch (err) {
+          window.mostrarToast?.('❌', 'Error', err.message || 'No se pudo agendar la cita.');
+          console.error('[VueCitas] guardarCita:', err);
+        } finally {
+          this.guardando = false;
+        }
+      },
+
+      /* ── Mostrar el modal de confirmación ──────── */
+      confirmarCancelacion(cita) {
+        this.citaAcancelar = cita;
+      },
+
+      /* ── Ejecutar la cancelación de la cita ────── */
+      async ejecutarCancelacion() {
+        if (!this.citaAcancelar) return;
+        this.cancelando = true;
+
+        try {
+          if (this.modoFallback) {
+            /* Sin API: marcar localmente */
+            const idx = this.citas.findIndex(c => c.id_cita === this.citaAcancelar.id_cita);
+            if (idx !== -1) this.citas[idx].estado = 'cancelada';
+            this.guardarCacheLocal();
+            window.mostrarToast?.('✅', 'Cita cancelada', 'Cancelada localmente (sin conexión).');
+          } else {
+            const resp = await window.api('cancelar_cita', {
+              id_cita: this.citaAcancelar.id_cita,
+            }, true);
+
+            if (resp?.ok) {
+              window.mostrarToast?.('✅', 'Cita cancelada', 'La cita fue cancelada correctamente.');
+              await this.cargarCitas();
+            } else {
+              throw new Error(resp?.error || 'No se pudo cancelar la cita.');
+            }
+          }
+        } catch (err) {
+          window.mostrarToast?.('❌', 'Error', err.message);
+          console.error('[VueCitas] ejecutarCancelacion:', err);
+        } finally {
+          this.cancelando    = false;
+          this.citaAcancelar = null;
+        }
+      },
+
+      /* ── Conteo para los badges de los filtros ─── */
+      contarFiltro(filtro) {
+        const hoy = this.hoyISO;
+        return this.citas.filter(c => {
+          if (filtro === 'proximas') return c.fecha >= hoy && c.estado !== 'cancelada';
+          if (filtro === 'pasadas')  return c.fecha < hoy  || c.estado === 'completada';
+          return true;
+        }).length;
+      },
+
+      /* ── Helpers de presentación ───────────────── */
+
+      /** Extrae el número de día de una fecha ISO (YYYY-MM-DD) */
+      extraerDia(fechaISO) {
+        return fechaISO ? parseInt(fechaISO.split('-')[2], 10) : '--';
+      },
+
+      /** Extrae el nombre corto del mes de una fecha ISO */
+      extraerMes(fechaISO) {
+        if (!fechaISO) return '---';
+        const mes = parseInt(fechaISO.split('-')[1], 10) - 1;
+        return MESES_CORTOS[mes] || '---';
+      },
+
+      /** Convierte 'HH:MM:SS' a 'HH:MM a.m./p.m.' para mayor legibilidad */
+      formatearHora(hora) {
+        if (!hora) return '';
+        const [h, m] = hora.split(':').map(Number);
+        const sufijo = h < 12 ? 'a.m.' : 'p.m.';
+        const h12    = h % 12 || 12;
+        return `${h12}:${String(m).padStart(2, '0')} ${sufijo}`;
+      },
+
+      /** Devuelve el motivo o un texto por defecto si está vacío */
+      motivoVisible(cita) {
+        return cita.motivo?.trim() || 'Cita médica';
+      },
+
+      /* Convierte una fecha ISO a formato legible */
+      formatearFechaLegible(fechaISO) {
+        if (!fechaISO) return '';
+        const [a, m, d] = fechaISO.split('-').map(Number);
+        const meses = [
+          'enero','febrero','marzo','abril','mayo','junio',
+          'julio','agosto','septiembre','octubre','noviembre','diciembre',
+        ];
+        return `${d} de ${meses[m - 1]} de ${a}`;
+      },
+
+      /** Devuelve una etiqueta amigable para el estado de la cita */
+      etiquetaEstado(estado) {
+        const mapa = {
+          pendiente:  'Pendiente',
+          completada: 'Completada',
+          cancelada:  'Cancelada',
+        };
+        return mapa[estado] || estado;
+      },
+    },
+
+    /* ── Ciclo de vida: cargar al montar ─────────── */
+    mounted() {
+      /* Mostrar caché del usuario actual mientras carga del servidor */
+      this.cargarCacheLocal();
+      this.cargarCitas();
+    },
+  });
+
+  /* Montar la app en el DOM */
+  window._vueCitasApp = appCitas.mount('#app-citas');
+}
+
+/* ════════ BOOTSTRAP (UNIFICADO) ════════ */
+
+/**
+ * Hook global — script.js lo llama cuando el paciente guarda un nuevo signo
+ * desde otro punto de entrada (p.ej. el formulario rápido del dashboard).
+ */
 window.notificarNuevoSigno = function(registroOptimista) {
   const vue = window._vueSignosApp;
   if (!vue) return;
   if (registroOptimista) { vue.historial.unshift(registroOptimista); vue.guardarCacheLocal(); }
   vue.cargarHistorial().catch(() => {});
 };
+
+/**
+ * window.iniciarVueCitas
+ * Punto de entrada que llama irA('pagina-agendar-cita') en script.js.
+ * iniciarVueCitas() ya está definida arriba (en el bloque de citas_vue).
+ * Solo la exponemos globalmente aquí para mantener un único lugar de registro.
+ */
+window.iniciarVueCitas  = iniciarVueCitas;
+window.iniciarVueSignos = iniciarVueSignos;
+
+console.log('[vue-modulos.js] Módulos de Signos Vitales y Citas cargados ✓');
