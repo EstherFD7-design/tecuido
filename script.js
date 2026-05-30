@@ -53,6 +53,12 @@ function limpiarSesion() {
   App.token   = null;
   localStorage.removeItem('tc_token');
   localStorage.removeItem('tc_usuario');
+
+  // Limpiar el DOM de datos del usuario anterior para evitar flash al siguiente login
+  const listaCitas = document.getElementById('lista-citas-alarmas');
+  if (listaCitas) listaCitas.innerHTML = '';
+  const listaCitasDash = document.querySelector('.citas-lista');
+  if (listaCitasDash) listaCitasDash.innerHTML = '';
 }
 
 /* ═════ LLAMADAS A LA API ══════ */
@@ -598,11 +604,18 @@ function configurarFormSigno() {
 
 /* ═══ CITAS MÉDICAS ═══ */
 async function cargarCitas() {
-  if (!App.token || App.usuario?.rol !== 'paciente') return;
-
-  const resp = await api('mis_citas', {}, true);
   const contenedor = $('#lista-citas-alarmas');
   if (!contenedor) return;
+
+  if (!App.token || App.usuario?.rol !== 'paciente') {
+    contenedor.innerHTML = '<p style="color:var(--texto-suave);padding:16px 0;">Inicia sesión como paciente para ver tus citas.</p>';
+    return;
+  }
+
+  // Limpiar contenido anterior ANTES de hacer la llamada para evitar mostrar citas de otro usuario
+  contenedor.innerHTML = '<p style="color:var(--texto-suave);padding:16px 0;">Cargando citas...</p>';
+
+  const resp = await api('mis_citas', {}, true);
 
   if (!resp.ok || !resp.citas?.length) {
     contenedor.innerHTML = '<p style="color:var(--texto-suave);padding:16px 0;">No tienes citas agendadas.</p>';

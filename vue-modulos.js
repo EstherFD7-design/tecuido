@@ -2,7 +2,7 @@
 
 'use strict';
 
-/* ═════════ SECCIÓN 1 — SIGNOS VITALES ══════════ */
+/* ════ SECCIÓN 1 — SIGNOS VITALES ═══════ */
 /* ── Parámetros de respaldo (se usan si el servidor no responde) ── */
 const PARAMETROS_FALLBACK = [
   { id_parametro: 1, nombre_parametro: 'Glucosa en sangre',      unidad: 'mg/dL', rango_min: 70,  rango_max: 100, rango_fuente: 'global', rango_personalizado: 0 },
@@ -934,8 +934,7 @@ function iniciarVueSignos() {
   }
 }
 
-/* ════════ SECCIÓN 2 — CITAS MÉDICAS ════════════════ */
-
+/* ══════ SECCIÓN 2 — CITAS MÉDICAS ═══════ */
 
 /** Lista de especialidades médicas comunes */
 const ESPECIALIDADES = [
@@ -984,8 +983,7 @@ const MESES_CORTOS = [
   'jul','ago','sep','oct','nov','dic',
 ];
 
-/* ═════ TEMPLATE DEL COMPONENTE ═════════ */
-
+/* ═══ TEMPLATE DEL COMPONENT ═════ */
 const TEMPLATE_CITAS = `
 <div class="citas-vue-root">
 
@@ -1193,7 +1191,7 @@ const TEMPLATE_CITAS = `
 </div><!-- /citas-vue-root -->
 `;
 
-/* ════ ESTILOS DEL COMPONENTE ═════ */
+/* ══════ ESTILOS DEL COMPONENTE ══════ */
 const ESTILOS_CITAS = `
 /* ── Raíz del módulo ── */
 .citas-vue-root { font-family: inherit; }
@@ -1463,8 +1461,7 @@ const ESTILOS_CITAS = `
 .citas-slide-leave-to     { opacity: 0; transform: translateY(-8px); }
 `;
 
-/* ═════ FUNCIÓN PRINCIPAL: iniciarVueCitas() ══════ */
-
+/* ═════ FUNCIÓN PRINCIPAL: iniciarVueCitas() ═════ */
 function iniciarVueCitas() {
   /* ── Insertar estilos una sola vez en el <head> ── */
   if (!document.getElementById('estilos-citas-vue')) {
@@ -1486,7 +1483,7 @@ function iniciarVueCitas() {
     window._vueCitasApp.unmount();
     window._vueCitasApp = null;
   }
-  mountPoint.innerHTML = '';
+  mountPoint.innerHTML = '<p style="text-align:center;color:var(--texto-suave);padding:40px 0;">Cargando citas…</p>';
 
   /* ── Crear y montar la app Vue ─────────────────── */
   const appCitas = Vue.createApp({
@@ -1586,6 +1583,9 @@ function iniciarVueCitas() {
 
       cargarCacheLocal() {
         try {
+          // Solo cargar caché si hay un usuario autenticado con ID conocido
+          const uid = window.App?.usuario?.id;
+          if (!uid) return;
           const data = localStorage.getItem(getCitasCacheKey());
           if (data) {
             this.citas = JSON.parse(data);
@@ -1821,7 +1821,7 @@ function iniciarVueCitas() {
         return cita.motivo?.trim() || 'Cita médica';
       },
 
-      /* Convierte una fecha ISO a formato legible */
+      /** Convierte una fecha ISO a formato legible */
       formatearFechaLegible(fechaISO) {
         if (!fechaISO) return '';
         const [a, m, d] = fechaISO.split('-').map(Number);
@@ -1855,7 +1855,7 @@ function iniciarVueCitas() {
   window._vueCitasApp = appCitas.mount('#app-citas');
 }
 
-/* ════════ BOOTSTRAP (UNIFICADO) ════════ */
+/* ════ BOOTSTRAP UNIFICADO ══════ */
 
 /**
  * Hook global — script.js lo llama cuando el paciente guarda un nuevo signo
