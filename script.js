@@ -40,7 +40,7 @@ function restaurarSesion() {
 
 function limpiarSesion() {
   // Limpiar caché de sesión del usuario actual ANTES de borrar App.usuario
-  // IMPORTANTE: NO borrar tc_meds_${uid} — son los medicamentos guardados del paciente y deben persistir para cuando vuelva a iniciar sesión.
+  // El filtro por UID en la lectura evita que un paciente vea datos de otro.
   if (App.usuario?.id) {
     const uid = App.usuario.id;
     localStorage.removeItem(`tc_signos_historial_${uid}`);
@@ -670,7 +670,7 @@ const MedModule = {
 };
 
 function medStorageKey() {
-  return `tc_meds_${App.usuario?.id || 'local'}`;
+  return `tc_meds_${App.usuario?.id || 'anonimo'}`;
 }
 
 function getMedsLocal() {
@@ -1077,8 +1077,7 @@ async function cargarCitas() {
 
   if (!resp.ok || !resp.citas?.length) {
     contenedor.innerHTML = '<p style="color:var(--texto-suave);padding:16px 0;">No tienes citas agendadas.</p>';
-    return;
-  }
+  } else {
 
   const meses = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   contenedor.innerHTML = resp.citas.map(c => {
@@ -1120,10 +1119,27 @@ async function cargarCitas() {
     });
   });
 
+  }
+
   // También renderizar medicamentos en la sección de alarmas
   const contMeds = $('#lista-meds-alarmas');
   if (contMeds) {
-    const meds = getMedsLocal();
+    // ── Guardia de seguridad: solo mostrar si hay sesión activa ──
+    if (!App.token || !App.usuario?.id) {
+      contMeds.innerHTML = '<p style="color:var(--texto-suave);padding:10px 0;font-size:.85rem;">Inicia sesión para ver tus medicamentos.</p>';
+      return;
+    }
+    const uidActual = String(App.usuario.id);
+    // Filtrar solo medicamentos que pertenecen al usuario actual
+    // (IDs tienen formato `${uid}_${timestamp}` o `backend_${id}` importados por el usuario)
+    const todosLosMeds = getMedsLocal();
+    const meds = todosLosMeds.filter(m => {
+      // Medicamentos creados localmente: id comienza con el UID del usuario
+      if (String(m.id).startsWith(`${uidActual}_`)) return true;
+      // Medicamentos importados del backend: se aceptan solo si la clave de storage ya es del UID actual
+      if (String(m.id).startsWith('backend_')) return true;
+      return false;
+    });
     if (!meds.length) {
       contMeds.innerHTML = '<p style="color:var(--texto-suave);padding:10px 0;font-size:.85rem;">Sin medicamentos registrados. <a href="#pagina-medicamentos" style="color:var(--verde-principal);">Agregar →</a></p>';
     } else {
@@ -1189,7 +1205,7 @@ async function cargarMensajes() {
   if (!App.token || App.usuario?.rol !== 'paciente') return;
 
   // Aquí se cargarian la lista de familiares del paciente (Plan a futuro)
-  // Por el momento solo presnetamos el chat cuando se selecciona una conversación (Mejoras en proceso)
+  // Por el momento solo presentamos el chat cuando se selecciona una conversación (Mejoras en proceso)
 }
 
 function configurarMensajes() {

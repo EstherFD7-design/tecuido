@@ -2394,6 +2394,12 @@ function iniciarVueMedicamentos() {
 
     methods: {
       cargar() {
+        // ── Guardia de seguridad: no cargar si no hay usuario autenticado ──
+        const uidActual = window.App?.usuario?.id;
+        if (!uidActual || !window.App?.token) {
+          this.medicamentos = [];
+          return;
+        }
         this.medicamentos = getMedsLocal();
         // Importar meds del backend si existen
         if (window.App?._medsBackend?.length) {
@@ -2487,7 +2493,11 @@ function iniciarVueMedicamentos() {
           }
           window.mostrarToast?.('✅', 'Medicamento actualizado', nombre.trim());
         } else {
-          const uid = window.App?.usuario?.id || 0;
+          const uid = window.App?.usuario?.id;
+          if (!uid) {
+            window.mostrarToast?.('⚠️', 'Error de sesión', 'No se pudo identificar tu usuario. Recarga la app.');
+            return;
+          }
           meds.push({ id: `${uid}_${now}`, ...this.form, nombre: nombre.trim(), funcion: funcion.trim(), horarios: horariosFiltrados });
           window.mostrarToast?.('✅', 'Medicamento agregado', nombre.trim());
         }
